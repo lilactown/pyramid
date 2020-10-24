@@ -1,0 +1,2 @@
+{:paths ["src"]
+ :deps {edn-query-language/eql {:mvn/version "1.0.0"}}}
