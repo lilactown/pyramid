@@ -11,7 +11,7 @@
         (recur (rest kvs))))))
 
 
-(defn ref?
+(defn lookup?
   [x]
   (and (vector? x)
        (= 2 (count x))
@@ -26,9 +26,9 @@
 (defn- maybe-lookup
   ([db x]
    (cond
-     (ref? x) (entity db x)
+     (lookup? x) (entity db x)
 
-     (and (coll? x) (every? ref? x))
+     (and (coll? x) (every? lookup? x))
      (into (empty x) (map #(entity db %)) x)
 
      :else x)))
@@ -87,67 +87,54 @@
     (entity? v)
     (ref-to v)
 
+    (map? v) ;; map not an entity
+    (into (empty v) (map (juxt
+                          first
+                          (comp replace-all-nested-entities second)))
+          v)
+
     (and (coll? v) (every? entity? v))
     (into (empty v) (map ref-to) v)
 
-    (coll? v)
-    (replace-all-nested-entities v)
+    (or (sequential? v) (set? v))
+    (into (empty v) (map replace-all-nested-entities) v)
 
     :else v))
 
 
 (defn- denorm
-  [entity]
-  (loop [kvs entity
-         entity entity
+  [data]
+  (loop [kvs data
+         data data
          queued []
          denormalized []]
     (if-some [[k v] (first kvs)]
-      (cond
-        (entity? v)
-        (recur
-         ;; move on to the next key
-         (rest kvs)
-         ;; update our denormalized entity with a ref
-         (assoc entity k (ref-to v))
-         ;; add entity v to the queue
+      (recur
+       ;; move on to the next key
+       (rest kvs)
+       ;; update our data with lookups
+       (assoc data k (replace-all-nested-entities v))
+       ;; add potential entity v to the queue
+       (cond
+         (map? v)
          (conj queued v)
-         denormalized)
 
-        (and (coll? v) (every? entity? v))
-        (recur
-         (rest kvs)
-         ;; update denormalized entity with a coll of refs, preserving coll type
-         (assoc entity k (into (empty v) (map ref-to) v))
+         (coll? v)
          (apply conj queued v)
-         denormalized)
 
-        (map? v) ;; potential nested entity
-        (recur
-         (rest kvs)
-         entity
-         (conj queued v)
-         denormalized)
-
-        (coll? v) ;; potential nested entities
-        (recur
-         (rest kvs)
-         entity
-         (apply conj queued v)
-         denormalized)
-
-        :else (recur (rest kvs) entity queued denormalized))
+         :else queued)
+       denormalized)
       (if (empty? queued)
         ;; nothing left to do, return all denormalized entities
-        (if (entity? entity)
-          (conj denormalized entity)
+        (if (entity? data)
+          (conj denormalized data)
           denormalized)
         (recur
          (first queued)
          (first queued)
          (rest queued)
-         (if (entity? entity)
-           (conj denormalized entity)
+         (if (entity? data)
+           (conj denormalized data)
            denormalized))))))
 
 
@@ -160,14 +147,17 @@
 
 
 (defn add
-  [db entity]
-  (loop [entities (denorm entity)
-         db' db]
+  [db data]
+  (assert (map? data))
+  (loop [entities (denorm data)
+         db' (if (entity? data)
+               db
+               ;; capture top-level aliases
+               (merge db (replace-all-nested-entities data)))]
     (if-some [entity (first entities)]
       (recur
        (rest entities)
-       (update-in db' (or (ref-to entity)
-                          [::alias])
+       (update-in db' (ref-to entity)
                   merge entity))
       db')))
 
@@ -235,12 +225,13 @@
 
   (-> ppl
       (add {:me {:person/id 123}})
-      (add {:people/all [{:person/id 123}
-                         {:person/id 456}
-                         {:person/id 789}
-                         {:person/id 1000}
-                         {:person/id 9001}]})
-      (add {:person/id 123 :asdf {:jkl {:person/id 666}}}))
+      (add {:people/good [{:person/id 123}
+                          {:person/id 456}
+                          {:person/id 789}
+                          {:person/id 1000}
+                          {:person/id 9001}]})
+      (add {:person/id 123 :asdf {:jkl {:person/id 666
+                                        :person/age 10000}}}))
 
   #_(add ppl (entity ppl [:person/id 123]))
 
@@ -254,7 +245,7 @@
 
   ;; cycle
   (get-in will [:best-friend :best-friend :best-friend :best-friend])
-  ;; many refs
+  ;; many lookups
   (get will :friends)
-  ;; realize all top-level refs
+  ;; realize all top-level lookups
   (into {} will))
