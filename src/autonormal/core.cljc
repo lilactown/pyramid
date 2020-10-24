@@ -2,11 +2,12 @@
   (:refer-clojure :exclude [ident?]))
 
 
-(defn ref-to
+(defn lookup
   [entity]
   (loop [kvs entity]
     (when-some [[k v] (first kvs)]
-      (if (= (name k) "id")
+      (if (and (keyword? k)
+               (= (name k) "id"))
         [k v]
         (recur (rest kvs))))))
 
@@ -78,14 +79,14 @@
 (defn entity?
   [x]
   (and (map? x)
-       (some? (ref-to x))))
+       (some? (lookup x))))
 
 
 (defn- replace-all-nested-entities
   [v]
   (cond
     (entity? v)
-    (ref-to v)
+    (lookup v)
 
     (map? v) ;; map not an entity
     (into (empty v) (map (juxt
@@ -94,7 +95,7 @@
           v)
 
     (and (coll? v) (every? entity? v))
-    (into (empty v) (map ref-to) v)
+    (into (empty v) (map lookup) v)
 
     (or (sequential? v) (set? v))
     (into (empty v) (map replace-all-nested-entities) v)
@@ -157,7 +158,7 @@
     (if-some [entity (first entities)]
       (recur
        (rest entities)
-       (update-in db' (ref-to entity)
+       (update-in db' (lookup entity)
                   merge entity))
       db')))
 
