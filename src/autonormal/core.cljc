@@ -16,6 +16,7 @@
   [x]
   (and (vector? x)
        (= 2 (count x))
+       (keyword? (first x))
        (-> (first x)
            (name)
            (= "id"))))
