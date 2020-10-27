@@ -64,11 +64,15 @@
 
 
 (comment
-  #_(add ppl (update (entity ppl [:person/id 123])
-                     :friends
-                     conj
-                     {:person/id 123456789
-                      :person/name "Sarah"}))
+  (def ppl (a/db [{:person/id 123
+                   :person/name "Will"
+                   :best-friend {:person/id "asdf"}
+                   :friends [{:person/id "asdf"}
+                             {:person/id 456}
+                             {:person/id 789}]}
+                  {:person/id "asdf"
+                   :person/name "Andrea"
+                   :best-friend {:person/id 123}}]))
 
   (def will (entity ppl [:person/id 123]))
 
