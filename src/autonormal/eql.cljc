@@ -4,6 +4,9 @@
    [edn-query-language.core :as eql]))
 
 
+(def not-found ::not-found)
+
+
 ;; TODO unions
 (defn- db+ast->data
   [db node {:keys [data]}]
@@ -17,19 +20,19 @@
     (cond
       (map? data) [(:key node)
                    (if (a/ident? (:key node))
-                     (get-in db (:key node) ::not-found)
-                     (get data (:key node) ::not-found))]
+                     (get-in db (:key node) not-found)
+                     (get data (:key node) not-found))]
 
       (coll? data) (into
                     (empty data)
                     (map #(vector (:key node)
-                                  (get % (:key node) ::not-found)))
+                                  (get % (:key node) not-found)))
                     data))
 
     :join
     (let [key-result (if (a/ident? (:key node))
-                       (get-in db (:key node) ::not-found)
-                       (get data (:key node) ::not-found))]
+                       (get-in db (:key node) not-found)
+                       (get data (:key node) not-found))]
       [(:key node)
        (let [data (cond
                     (a/ident? key-result)
@@ -55,7 +58,7 @@
                                  (map #(db+ast->data db % {:data datum}))
                                  (:children node))))
                          data)
-           :else ::not-found))])))
+           :else not-found))])))
 
 
 (defn pull
@@ -81,7 +84,7 @@
 
   (pull db [#:people{:all [:person/name :person/id :best-friend]}])
 
-  (pull db [{[:person/id 1] [:person/id :person/name :person/favorites]}])
+  (pull db [{[:person/id 0] [:person/id :person/name :person/favorites]}])
 
   (pull db [{:people/all [:person/name :person/id :best-friend]}
             {[:person/id 1] [:person/age]}])
