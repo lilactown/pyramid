@@ -8,12 +8,16 @@
 
 
 ;; TODO unions
+;; TODO recursion
 (defn- db+ast->data
   [db node {:keys [data]}]
   (case (:type node)
     :root (into
            {}
-           (map #(db+ast->data db % {:data db}))
+           (comp
+            (map #(db+ast->data db % {:data db}))
+            ;; remove not-found values
+            (filter (comp not #{not-found} second)))
            (:children node))
 
     :prop
@@ -25,8 +29,10 @@
 
       (coll? data) (into
                     (empty data)
-                    (map #(vector (:key node)
-                                  (get % (:key node) not-found)))
+                    (comp
+                     (map #(vector (:key node)
+                                   (get % (:key node) not-found)))
+                     (filter (comp not #{not-found} second)))
                     data))
 
     :join
@@ -48,14 +54,18 @@
          (cond
            (map? data) (into
                         {}
-                        (map #(db+ast->data db % {:data data}))
+                        (comp
+                         (map #(db+ast->data db % {:data data}))
+                         (filter (comp not #{not-found} second)))
                         (:children node))
            (coll? data) (into
                          (empty data)
                          (map (fn [datum]
                                 (into
                                  (empty datum)
-                                 (map #(db+ast->data db % {:data datum}))
+                                 (comp
+                                  (map #(db+ast->data db % {:data datum}))
+                                  (filter (comp not #{not-found} second)))
                                  (:children node))))
                          data)
            :else not-found))])))
