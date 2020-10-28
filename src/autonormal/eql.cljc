@@ -8,20 +8,14 @@
 
 
 ;; TODO recursion
-(defn- db+ast->data
+(defn- visit
   [db node {:keys [data]}]
   (case (:type node)
-    :root
-    (into
-     {}
-     (map #(db+ast->data db % {:data db}))
-     (:children node))
-
     :union
     (into
      {}
      (comp
-      (map #(db+ast->data db % {:data data})))
+      (map #(visit db % {:data data})))
      (:children node))
 
     :union-entry
@@ -30,7 +24,7 @@
       (if (contains? data union-key)
         (into
          {}
-         (map #(db+ast->data db % {:data data}))
+         (map #(visit db % {:data data}))
          (:children node))
         nil))
 
@@ -69,7 +63,7 @@
            (map? data) (into
                         {}
                         (comp
-                         (map #(db+ast->data db % {:data data}))
+                         (map #(visit db % {:data data}))
                          (filter seq)
                          (filter (comp not #{not-found} second)))
                         (:children node))
@@ -80,7 +74,7 @@
                                  (into
                                   (empty datum)
                                   (comp
-                                   (map #(db+ast->data db % {:data datum}))
+                                   (map #(visit db % {:data datum}))
                                    (filter (comp not #{not-found} second)))
                                   (:children node))))
                           (filter seq))
@@ -90,7 +84,10 @@
 
 (defn pull
   [db query]
-  (db+ast->data db (eql/query->ast query) nil))
+  (into
+   {}
+   (map #(visit db % {:data db}))
+   (:children (eql/query->ast query))))
 
 
 (comment
@@ -151,10 +148,10 @@
       :audio/id
       [:audio/id :audio/url :audio/duration :chat.entry/timestamp]
 
-      ;; :photo/id
-      ;; [:photo/id :photo/url :photo/width :photo/height :chat.entry/timestamp]
+      :photo/id
+      [:photo/id :photo/url :photo/width :photo/height :chat.entry/timestamp]
 
-      ;; :asdf/jkl [:asdf/jkl]
+      :asdf/jkl [:asdf/jkl]
       }}]
    #_(eql/query->ast)
    (pull db1)))
