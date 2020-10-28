@@ -1,22 +1,24 @@
 (ns autonormal.eql-test
   (:require
    [autonormal.core :as a]
-   [autonormal.entity :as a.e]
    [autonormal.eql :as a.eql]
-   [clojure.test :as t]
-   #_[com.wsscode.pathom.core :as p]))
+   [clojure.test :as t]))
+
+(def data
+  {:people/all [{:person/id 0
+                 :person/name "Alice"
+                 :person/age 17
+                 :best-friend {:person/id 1}
+                 :person/favorites
+                 {:favorite/ice-cream "vanilla"}}
+                {:person/id 1
+                 :person/name "Bob"
+                 :person/age 23}]})
+
 
 (def db
-  (a/db [{:people/all [{:person/id 0
-                        :person/name "Alice"
-                        :person/age 17
-                        :best-friend {:person/id 1}}
-                       {:person/id 1
-                        :person/name "Bob"
-                        :person/age 23}]}
-         {[:person/id 0] {:person/id 0
-                          :person/favorites
-                          {:favorite/ice-cream "vanilla"}}}]))
+  (a/db [data]))
+
 
 (t/deftest pull
   (t/is (= {:people/all [{:person/name "Alice"
@@ -24,7 +26,7 @@
                          {:person/name "Bob"
                           :person/id 1}]}
            (a.eql/pull db [{:people/all [:person/name :person/id]}])
-           #_(p/map-select
+           (p/map-select
             ;; reconstruct denormalized tree
             {:people/all (mapv #(a.e/entity db %) (get db :people/all))}
             [{:people/all [:person/name :person/id]}]))
@@ -33,10 +35,7 @@
                            :person/id 0
                            :best-friend #:person{:name "Bob", :id 1 :age 23}}
                           #:person{:name "Bob", :id 1}]}
-           (a.eql/pull db [#:people{:all [:person/name :person/id :best-friend]}])
-           #_(p/map-select
-            {:people/all (mapv #(a.e/entity db %) (get db :people/all))}
-            [#:people{:all [:person/name :person/id :best-friend]}]))
+           (a.eql/pull db [#:people{:all [:person/name :person/id :best-friend]}]))
         "join + prop + join ref lookup")
   (t/is (= #:people{:all [{:person/name "Alice"
                            :person/id 0
@@ -44,30 +43,17 @@
                           #:person{:name "Bob", :id 1}]}
            (a.eql/pull db [#:people{:all [:person/name
                                           :person/id
-                                          {:best-friend [:person/name]}]}])
-           #_(p/map-select
-            {:people/all (mapv #(a.e/entity db %) (get db :people/all))}
-            [#:people{:all [:person/name
-                            :person/id
-                            {:best-friend [:person/name]}]}]))
+                                          {:best-friend [:person/name]}]}]))
         "join + prop, ref as prop does not lookup")
   (t/is (= {[:person/id 1] #:person{:id 1, :name "Bob", :age 23}}
-           (a.eql/pull db [[:person/id 1]])
-           #_(p/map-select
-            {[:person/id 1] (a.e/entity db [:person/id 1])}
-            [[:person/id 1]]))
+           (a.eql/pull db [[:person/id 1]]))
         "ident acts as ref lookup")
   (t/is (= {[:person/id 0] #:person{:id 0
                                     :name "Alice"
                                     :favorites #:favorite{:ice-cream "vanilla"}}}
            (a.eql/pull db [{[:person/id 0] [:person/id
                                             :person/name
-                                            :person/favorites]}])
-           #_(p/map-select
-            {[:person/id 0] (a.e/entity db [:person/id 0])}
-            [{[:person/id 0] [:person/id
-                              :person/name
-                              :person/favorites]}]))
+                                            :person/favorites]}]))
         "join on ident")
   (t/is (= {:people/all [{:person/name "Alice"
                           :person/id 0
@@ -75,12 +61,7 @@
                          #:person{:name "Bob", :id 1}]
             [:person/id 1] #:person{:age 23}}
            (a.eql/pull db [{:people/all [:person/name :person/id :best-friend]}
-                           {[:person/id 1] [:person/age]}])
-           #_(p/map-select
-            {:people/all (mapv #(a.e/entity db %) (:people/all db))
-             [:person/id 1] (a.e/entity db [:person/id 1])}
-            [{:people/all [:person/name :person/id :best-friend]}
-             {[:person/id 1] [:person/age]}]))
+                           {[:person/id 1] [:person/age]}]))
         "multiple joins")
 
   (t/testing "ignores params"
@@ -136,5 +117,4 @@
                                :photo/width 10
                                :photo/height 10
                                :chat.entry/timestamp "7890"}]}
-             (a.eql/pull db1 query)
-             #_(p/map-select data query)))))
+             (a.eql/pull db1 query)))))
