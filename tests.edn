@@ -1,0 +1,5 @@
+#kaocha/v1
+#meta-merge [{:tests [{:id :clj
+                       :type :kaocha.type/clojure.test}
+                      {:id :cljs
+                       :type :kaocha.type/cljs}]} ]
