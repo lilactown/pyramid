@@ -1,2 +1,3 @@
 {:paths ["src"]
- :deps {edn-query-language/eql {:mvn/version "1.0.0"}}}
+ :deps {edn-query-language/eql {:mvn/version "1.0.0"}}
+ :aliases {:test {:extra-deps {com.wsscode/pathom {:mvn/version "2.3.0-alpha16"}}}}}
