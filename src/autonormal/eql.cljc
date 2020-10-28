@@ -31,9 +31,12 @@
     :prop
     (cond
       (map? data) [(:key node)
-                   (if (a/ident? (:key node))
-                     (get-in db (:key node) not-found)
-                     (get data (:key node) not-found))]
+                   (let [result (if (a/ident? (:key node))
+                                  (get-in db (:key node) not-found)
+                                  (get data (:key node) not-found))]
+                     (if (a/ident? result)
+                       (get-in db result not-found)
+                       result))]
 
       (coll? data) (into
                     (empty data)

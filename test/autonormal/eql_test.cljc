@@ -31,7 +31,7 @@
         "basic join + prop")
   (t/is (= #:people{:all [{:person/name "Alice"
                            :person/id 0
-                           :best-friend [:person/id 1]}
+                           :best-friend #:person{:name "Bob", :id 1 :age 23}}
                           #:person{:name "Bob", :id 1}]}
            (a.eql/pull db [#:people{:all [:person/name :person/id :best-friend]}])
            #_(p/map-select
@@ -45,7 +45,7 @@
            (a.eql/pull db [#:people{:all [:person/name
                                           :person/id
                                           {:best-friend [:person/name]}]}])
-           (p/map-select
+           #_(p/map-select
             {:people/all (mapv #(a.e/entity db %) (get db :people/all))}
             [#:people{:all [:person/name
                             :person/id
@@ -63,7 +63,7 @@
            (a.eql/pull db [{[:person/id 0] [:person/id
                                             :person/name
                                             :person/favorites]}])
-           (p/map-select
+           #_(p/map-select
             {[:person/id 0] (a.e/entity db [:person/id 0])}
             [{[:person/id 0] [:person/id
                               :person/name
@@ -71,12 +71,12 @@
         "join on ident")
   (t/is (= {:people/all [{:person/name "Alice"
                           :person/id 0
-                          :best-friend [:person/id 1]}
+                          :best-friend #:person{:name "Bob", :id 1 :age 23}}
                          #:person{:name "Bob", :id 1}]
             [:person/id 1] #:person{:age 23}}
            (a.eql/pull db [{:people/all [:person/name :person/id :best-friend]}
                            {[:person/id 1] [:person/age]}])
-           (p/map-select
+           #_(p/map-select
             {:people/all (mapv #(a.e/entity db %) (:people/all db))
              [:person/id 1] (a.e/entity db [:person/id 1])}
             [{:people/all [:person/name :person/id :best-friend]}
