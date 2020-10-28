@@ -4,7 +4,7 @@
    [autonormal.entity :as a.e]
    [autonormal.eql :as a.eql]
    [clojure.test :as t]
-   [com.wsscode.pathom.core :as p]))
+   #_[com.wsscode.pathom.core :as p]))
 
 (def db
   (a/db [{:people/all [{:person/id 0
@@ -24,7 +24,7 @@
                          {:person/name "Bob"
                           :person/id 1}]}
            (a.eql/pull db [{:people/all [:person/name :person/id]}])
-           (p/map-select
+           #_(p/map-select
             ;; reconstruct denormalized tree
             {:people/all (mapv #(a.e/entity db %) (get db :people/all))}
             [{:people/all [:person/name :person/id]}]))
@@ -53,7 +53,7 @@
         "join + prop, ref as prop does not lookup")
   (t/is (= {[:person/id 1] #:person{:id 1, :name "Bob", :age 23}}
            (a.eql/pull db [[:person/id 1]])
-           (p/map-select
+           #_(p/map-select
             {[:person/id 1] (a.e/entity db [:person/id 1])}
             [[:person/id 1]]))
         "ident acts as ref lookup")
@@ -137,4 +137,4 @@
                                :photo/height 10
                                :chat.entry/timestamp "7890"}]}
              (a.eql/pull db1 query)
-             (p/map-select data query)))))
+             #_(p/map-select data query)))))
