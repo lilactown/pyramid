@@ -25,11 +25,7 @@
                           :person/id 0}
                          {:person/name "Bob"
                           :person/id 1}]}
-           (a.eql/pull db [{:people/all [:person/name :person/id]}])
-           (p/map-select
-            ;; reconstruct denormalized tree
-            {:people/all (mapv #(a.e/entity db %) (get db :people/all))}
-            [{:people/all [:person/name :person/id]}]))
+           (a.eql/pull db [{:people/all [:person/name :person/id]}]))
         "basic join + prop")
   (t/is (= #:people{:all [{:person/name "Alice"
                            :person/id 0
