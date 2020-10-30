@@ -12,4 +12,9 @@ jobs:
       - uses: DeLaGuardo/setup-clojure@master
         with:
           cli: '1.10.1.727'
-      - run: bin/kaocha
+      - name: Setup Node.js environment
+        uses: actions/setup-node@latest
+      - name: Install npm deps
+        run: npm install
+      - name: Run tests
+        run: bin/kaocha
