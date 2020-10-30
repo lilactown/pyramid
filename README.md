@@ -104,7 +104,7 @@ date in your system, e.g. in an atom.
   - [ ] Recursion
   - [ ] Preserve query meta on results
 - [ ] Schema
-  - [ ] Custom entity ID
+  - [ ] Custom ident keys
 
 ## Prior art
 
