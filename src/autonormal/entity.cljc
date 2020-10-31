@@ -22,14 +22,17 @@
   #?@(:clj [Object
             (toString [e] (pr-str entity-to-be))
             (hashCode [e] (hash entity-to-be))
-            (equals [e o] (.equals entity-to-be o))
+            (equals [e o]
+                    (.equals o entity-to-be))
 
             clojure.lang.Seqable
             (seq [e] (for [[k v] entity-to-be]
                        [k (maybe-lookup db v)]))
 
             clojure.lang.Associative
-            (equiv [e o] (.equiv entity-to-be o))
+            (equiv
+             [e o]
+             (.equiv o entity-to-be))
             (containsKey [e k] (.containsKey entity-to-be k))
             (entryAt [e k] (let [entry (.entryAt entity-to-be k)
                                  v (val entry)]
@@ -53,6 +56,11 @@
                     (maybe-lookup (entity-to-be k not-found)))]))
 
 
+(defn ->map
+  [e]
+  (.-entity-to-be e))
+
+
 (defn entity
   [db ident]
   (->Entity db (get-in db ident)))
@@ -61,24 +69,3 @@
 #?(:clj
    (defmethod print-method Entity [e, ^java.io.Writer w]
      (.write w (str e))))
-
-
-(comment
-  (def ppl (a/db [{:person/id 123
-                   :person/name "Will"
-                   :best-friend {:person/id "asdf"}
-                   :friends [{:person/id "asdf"}
-                             {:person/id 456}
-                             {:person/id 789}]}
-                  {:person/id "asdf"
-                   :person/name "Andrea"
-                   :best-friend {:person/id 123}}]))
-
-  (def will (entity ppl [:person/id 123]))
-
-  ;; cycle
-  (get-in will [:best-friend :best-friend :best-friend :best-friend])
-  ;; many idents
-  (get will :friends)
-  ;; realize all top-level idents
-  (into {} will))
