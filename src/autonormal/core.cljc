@@ -95,7 +95,6 @@
 
 (defn add
   ([{::keys [schema] :as db} data]
-   (assert (map? data))
    (loop [entities (normalize schema data)
           db' (if (entity-map? schema data)
                 db
