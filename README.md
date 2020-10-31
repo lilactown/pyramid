@@ -88,12 +88,9 @@ date in your system, e.g. in an atom.
 
 ## Features
 
-- [ ] Supports Clojure and ClojureScript
+- [x] Supports Clojure and ClojureScript
   - [x] Normalized DB
   - [x] EQL queries
-  - [ ] Lazy map
-    - [x] Clojure
-    - [ ] ClojureScript
 - [x] Auto normalization of nested data
 - [x] A custom map implementation for lazy retrieval of entities 
 - [ ] Full EQL query spec
@@ -103,8 +100,7 @@ date in your system, e.g. in an atom.
   - [x] Unions
   - [ ] Recursion
   - [ ] Preserve query meta on results
-- [ ] Schema
-  - [ ] Custom ident keys
+- [x] Custom schema
 
 ## Prior art
 
