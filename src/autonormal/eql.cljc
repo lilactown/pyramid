@@ -9,7 +9,7 @@
 
 ;; TODO recursion
 (defn- visit
-  [db node {:keys [data]}]
+  [{::a/keys [schema] :as db} node {:keys [data]}]
   (case (:type node)
     :union
     (into
@@ -31,10 +31,10 @@
     :prop
     (cond
       (map? data) [(:key node)
-                   (let [result (if (a/ident? (:key node))
+                   (let [result (if (a/ident? schema (:key node))
                                   (get-in db (:key node) not-found)
                                   (get data (:key node) not-found))]
-                     (if (a/ident? result)
+                     (if (a/ident? schema result)
                        (get-in db result not-found)
                        result))]
 
@@ -47,15 +47,15 @@
                     data))
 
     :join
-    (let [key-result (if (a/ident? (:key node))
+    (let [key-result (if (a/ident? schema (:key node))
                        (get-in db (:key node) not-found)
                        (get data (:key node) not-found))]
       [(:key node)
        (let [data (cond
-                    (a/ident? key-result)
+                    (a/ident? schema key-result)
                     (get-in db key-result)
 
-                    (and (coll? key-result) (every? a/ident? key-result))
+                    (and (coll? key-result) (every? #(a/ident? schema %) key-result))
                     (into
                      (empty key-result)
                      (map #(get-in db %))

@@ -66,3 +66,10 @@
                   {:person/id 456
                    :best-friend {:person/id 123}}]))
         "refs"))
+
+
+(t/deftest schema
+  (t/is (= {::a/schema #{:color}
+            :color {"red" {:color "red" :hex "#ff0000"}}}
+           (a/db [{:color "red" :hex "#ff0000"}]
+                 #{:color}))))

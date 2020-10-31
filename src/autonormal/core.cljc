@@ -8,17 +8,18 @@
 
 
 (defn ident-of
-  [entity]
-  (loop [kvs entity]
-    (when-some [[k v] (first kvs)]
-      (if (and (keyword? k)
-               (= (name k) "id"))
-        (ident k v)
-        (recur (rest kvs))))))
+  [schema entity]
+  (let [schema (or schema #(= (name %) "id"))]
+    (loop [kvs entity]
+      (when-some [[k v] (first kvs)]
+        (if (and (keyword? k)
+                 (schema k))
+          (ident k v)
+          (recur (rest kvs)))))))
 
 
 (defn ident?
-  [x]
+  [schema x]
   (and (vector? x)
        (= 2 (count x))
        (keyword? (first x))
@@ -28,34 +29,34 @@
 
 
 (defn entity-map?
-  [x]
+  [schema x]
   (and (map? x)
-       (some? (ident-of x))))
+       (some? (ident-of schema x))))
 
 
 (defn- replace-all-nested-entities
-  [v]
+  [schema v]
   (cond
-    (entity-map? v)
-    (ident-of v)
+    (entity-map? schema v)
+    (ident-of schema v)
 
     (map? v) ;; map not an entity
     (into (empty v) (map (juxt
                           first
-                          (comp replace-all-nested-entities second)))
+                          (comp #(replace-all-nested-entities schema %) second)))
           v)
 
-    (and (coll? v) (every? entity-map? v))
-    (into (empty v) (map ident-of) v)
+    (and (coll? v) (every? #(entity-map? schema %) v))
+    (into (empty v) (map #(ident-of schema %)) v)
 
     (or (sequential? v) (set? v))
-    (into (empty v) (map replace-all-nested-entities) v)
+    (into (empty v) (map #(replace-all-nested-entities schema %)) v)
 
     :else v))
 
 
 (defn- normalize
-  [data]
+  [schema data]
   (loop [kvs data
          data data
          queued []
@@ -65,7 +66,7 @@
        ;; move on to the next key
        (rest kvs)
        ;; update our data with idents
-       (assoc data k (replace-all-nested-entities v))
+       (assoc data k (replace-all-nested-entities schema v))
        ;; add potential entity v to the queue
        (cond
          (map? v)
@@ -78,30 +79,31 @@
        normalized)
       (if (empty? queued)
         ;; nothing left to do, return all denormalized entities
-        (if (entity-map? data)
+        (if (entity-map? schema data)
           (conj normalized data)
           normalized)
         (recur
          (first queued)
          (first queued)
          (rest queued)
-         (if (entity-map? data)
+         (if (entity-map? schema data)
            (conj normalized data)
            normalized))))))
 
 
 (defn add
-  ([db data]
+  ([{::keys [schema] :as db} data]
    (assert (map? data))
-   (loop [entities (normalize data)
-          db' (if (entity-map? data)
+   (prn schema data (entity-map? schema data))
+   (loop [entities (normalize schema data)
+          db' (if (entity-map? schema data)
                 db
                 ;; capture top-level aliases
-                (merge db (replace-all-nested-entities data)))]
+                (merge db (replace-all-nested-entities schema data)))]
      (if-some [entity (first entities)]
        (recur
         (rest entities)
-        (update-in db' (ident-of entity)
+        (update-in db' (ident-of schema entity)
                    merge entity))
        db')))
   ([db data & more]
@@ -111,4 +113,11 @@
 (defn db
   ([] {})
   ([entities]
-   (reduce add {} entities)))
+   (db entities nil))
+  ([entities schema]
+   (reduce
+    add
+    (if (some? schema)
+      {::schema schema}
+      {})
+    entities)))
