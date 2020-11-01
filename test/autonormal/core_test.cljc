@@ -91,6 +91,8 @@
 
 
 (t/deftest pull
+  (t/is (= #:people{:all [[:person/id 0] [:person/id 1]]}           (a/pull db [:people/all]))
+        "simple key")
   (t/is (= {:people/all [{:person/name "Alice"
                           :person/id 0}
                          {:person/name "Bob"
@@ -108,18 +110,25 @@
                            :best-friend #:person{:name "Bob"}}
                           #:person{:name "Bob", :id 1}]}
            (a/pull db [#:people{:all [:person/name
-                                          :person/id
-                                          {:best-friend [:person/name]}]}]))
+                                      :person/id
+                                      {:best-friend [:person/name]}]}]))
         "join + prop, ref as prop does not lookup")
   (t/is (= {[:person/id 1] #:person{:id 1, :name "Bob", :age 23}}
            (a/pull db [[:person/id 1]]))
         "ident acts as ref lookup")
+  (t/is (= {[:person/id 0] {:person/id 0
+                            :person/name "Alice"
+                            :person/age 17
+                            :best-friend [:person/id 1]
+                            :person/favorites #:favorite{:ice-cream "vanilla"}}}
+           (a/pull db [[:person/id 0]]))
+        "ident does not resolve nested refs")
   (t/is (= {[:person/id 0] #:person{:id 0
                                     :name "Alice"
                                     :favorites #:favorite{:ice-cream "vanilla"}}}
            (a/pull db [{[:person/id 0] [:person/id
-                                            :person/name
-                                            :person/favorites]}]))
+                                        :person/name
+                                        :person/favorites]}]))
         "join on ident")
   (t/is (= {:people/all [{:person/name "Alice"
                           :person/id 0
@@ -127,7 +136,7 @@
                          #:person{:name "Bob", :id 1}]
             [:person/id 1] #:person{:age 23}}
            (a/pull db [{:people/all [:person/name :person/id :best-friend]}
-                           {[:person/id 1] [:person/age]}]))
+                       {[:person/id 1] [:person/age]}]))
         "multiple joins")
 
   (t/testing "ignores params"
@@ -137,7 +146,7 @@
                                      :id 0}
                             #:person{:name "Bob", :id 1}]}
              (a/pull db '[{(:people/all {:with "params"})
-                               [:person/name :person/id]}]))))
+                           [:person/name :person/id]}]))))
 
   (t/testing "union"
     (let [data {:chat/entries
