@@ -119,8 +119,8 @@ This library implements a fast EQL engine for Clojure data.
 ```clojure
 (a/pull animorphs-3 [[:person/id 1]])
 ;; => {[:person/id 1] {:person/id 1
-                       :person/name "Macro"
-                       :friend/best [:person/id 3]}}
+;;                     :person/name "Macro"
+;;                     :friend/best [:person/id 3]}}
 ```
 
 You can join on idents and keys within entities, and it will resolve any
