@@ -133,7 +133,7 @@
 
 ;; TODO recursion
 (defn- visit
-  [{::keys [schema] :as db} node {:keys [data]}]
+  [{::keys [schema] :as db} node {:keys [data parent]}]
   (case (:type node)
     :union
     (into
@@ -187,15 +187,23 @@
                      (map #(get-in db %))
                      key-result)
 
-                    :else key-result)]
+                    :else key-result)
+             [children parent] (cond
+                                 (contains? node :children)
+                                 [(:children node) node]
+
+                                 ;; inifinite recursion
+                                 ;; repeat this query with the new data
+                                 (= (:query node) '...)
+                                 [(:children parent) parent])]
          (cond
            (map? data) (into
                         {}
                         (comp
-                         (map #(visit db % {:data data}))
+                         (map #(visit db % {:data data :parent parent}))
                          (filter seq)
                          (filter (comp not #{not-found} second)))
-                        (:children node))
+                        children)
            (coll? data) (into
                          (empty data)
                          (comp
@@ -203,9 +211,9 @@
                                  (into
                                   (empty datum)
                                   (comp
-                                   (map #(visit db % {:data datum}))
+                                   (map #(visit db % {:data datum :parent parent}))
                                    (filter (comp not #{not-found} second)))
-                                  (:children node))))
+                                  children)))
                           (filter seq))
                          data)
            :else not-found))])))

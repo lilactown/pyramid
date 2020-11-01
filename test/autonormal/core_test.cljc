@@ -139,48 +139,66 @@
              (a/pull db '[{(:people/all {:with "params"})
                                [:person/name :person/id]}]))))
 
-  (let [data {:chat/entries
-              [{:message/id 0
-                :message/text "foo"
-                :chat.entry/timestamp "1234"}
-               {:message/id 1
-                :message/text "bar"
-                :chat.entry/timestamp "1235"}
-               {:audio/id 0
-                :audio/url "audio://asdf.jkl"
-                :audio/duration 1234
-                :chat.entry/timestamp "4567"}
-               {:photo/id 0
-                :photo/url "photo://asdf_10x10.jkl"
-                :photo/height 10
-                :photo/width 10
-                :chat.entry/timestamp "7890"}]}
-        db1 (a/db [data])
-        query [{:chat/entries
-                {:message/id
-                 [:message/id :message/text :chat.entry/timestamp]
+  (t/testing "union"
+    (let [data {:chat/entries
+                [{:message/id 0
+                  :message/text "foo"
+                  :chat.entry/timestamp "1234"}
+                 {:message/id 1
+                  :message/text "bar"
+                  :chat.entry/timestamp "1235"}
+                 {:audio/id 0
+                  :audio/url "audio://asdf.jkl"
+                  :audio/duration 1234
+                  :chat.entry/timestamp "4567"}
+                 {:photo/id 0
+                  :photo/url "photo://asdf_10x10.jkl"
+                  :photo/height 10
+                  :photo/width 10
+                  :chat.entry/timestamp "7890"}]}
+          db1 (a/db [data])
+          query [{:chat/entries
+                  {:message/id
+                   [:message/id :message/text :chat.entry/timestamp]
 
-                 :audio/id
-                 [:audio/id :audio/url :audio/duration :chat.entry/timestamp]
+                   :audio/id
+                   [:audio/id :audio/url :audio/duration :chat.entry/timestamp]
 
-                 :photo/id
-                 [:photo/id :photo/url :photo/width :photo/height :chat.entry/timestamp]
+                   :photo/id
+                   [:photo/id :photo/url :photo/width :photo/height :chat.entry/timestamp]
 
-                 :asdf/jkl [:asdf/jkl]
-                 }}]]
-    (t/is (= #:chat{:entries [{:message/id 0
-                               :message/text "foo"
-                               :chat.entry/timestamp "1234"}
-                              {:message/id 1
-                               :message/text "bar"
-                               :chat.entry/timestamp "1235"}
-                              {:audio/id 0
-                               :audio/url "audio://asdf.jkl"
-                               :audio/duration 1234
-                               :chat.entry/timestamp "4567"}
-                              {:photo/id 0
-                               :photo/url "photo://asdf_10x10.jkl"
-                               :photo/width 10
-                               :photo/height 10
-                               :chat.entry/timestamp "7890"}]}
-             (a/pull db1 query)))))
+                   :asdf/jkl [:asdf/jkl]}}]]
+      (t/is (= #:chat{:entries [{:message/id 0
+                                 :message/text "foo"
+                                 :chat.entry/timestamp "1234"}
+                                {:message/id 1
+                                 :message/text "bar"
+                                 :chat.entry/timestamp "1235"}
+                                {:audio/id 0
+                                 :audio/url "audio://asdf.jkl"
+                                 :audio/duration 1234
+                                 :chat.entry/timestamp "4567"}
+                                {:photo/id 0
+                                 :photo/url "photo://asdf_10x10.jkl"
+                                 :photo/width 10
+                                 :photo/height 10
+                                 :chat.entry/timestamp "7890"}]}
+               (a/pull db1 query)))))
+
+  (t/testing "recursion"
+    (let [data {:entries
+                {:entry/name "foo"
+                 :entry/folders
+                 [{:entry/name "bar"}
+                  {:entry/name "baz"
+                   :entry/folders
+                   [{:entry/name "asdf"
+                     :entry/folders
+                     [{:entry/name "qwerty"}]}
+                    {:entry/name "jkl"
+                     :entry/folders
+                     [{:entry/name "uiop"}]}]}]} }
+          db (a/db [data] #{:entry/name})]
+      (t/is (= data
+               (a/pull db '[{:entries [:entry/name
+                                       {:entry/folders ...}]}]))))))
