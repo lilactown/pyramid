@@ -1,11 +1,21 @@
 # autonormal
 
-**Autonormal** is a library for automatically [normalizing](https://en.wikipedia.org/wiki/Database_normalization)
-nested data into a flat map structure.
-
+A library for storing graph data in a Clojure map that automatically
+[normalizes](https://en.wikipedia.org/wiki/Database_normalization) nested data
+and allows querying via [EQL](https://edn-query-language.org/eql/1.0.0/what-is-eql.html). It is optimized for read (query) performance.
 
 ## Installation
 
+This library is still a work in progress; however, you can use git deps to
+install and try it out.
+
+## Use cases
+
+The primary use case this library was developed for was to act as a client side
+cache for [pathom]() APIs. However, you can imagine any time you might reach for
+[DataScript]() to store data as entities, but where you need fast nested /
+recursive querying of many attributes and don't need the full expressive power
+of datalog, as being a good use case for **autonormal**.
 
 ## Usage
 
@@ -31,8 +41,6 @@ identified by a keyword whose name is `"id"`, e.g. `:id`, `:person/id`,
 
 ;; you can pass in multiple entities to instantiate a db, so `a/db` gets a vector
 (def animorphs (a/db [data]))
-
-animorphs
 ;; => {:person/id {0 {:person/id 0 
 ;;                    :person/name "Rachel"
 ;;                    :friend/list [[:person/id 1]
@@ -61,9 +69,10 @@ However, if you want to accrete more potentially nested data, there's a helpful
 
 ```clojure
 ;; Marco and Jake are each others best friend
-(add animorphs {:person/id 1
-                :friend/best {:person/id 3
-                              :friend/best {:person/id 1}}})
+(def animorphs-2
+  (a/add animorphs {:person/id 1
+                    :friend/best {:person/id 3
+                                  :friend/best {:person/id 1}}}))
 ;; => {:person/id {0 {:person/id 0 
 ;;                    :person/name "Rachel"
 ;;                    :friend/list [[:person/id 1]
@@ -86,19 +95,79 @@ Note that our `animorphs` db is an immutable hash map; `add` simply returns the
 new value. It's up to you to decide how to track its value and keep it up to
 date in your system, e.g. in an atom.
 
+### Adding non-entities
+
+Maps that are `add`ed are typically entities, but you can also add arbitrary
+maps and `add` will merge the map with the database, normalizing and referencing
+any nested entities. Example:
+
+```clojure
+(def animorphs-3
+  (a/add animorphs-2 {:species {:andalites [{:person/id 5
+                                             :person/species "andalite"}]}}))
+;; => {:person/id {,,,
+;;                 5 {:person/id 5
+;;                    :person/name "Ax"
+;;                    :person/species "andalite"}}
+;;     :species {:andalites [[:person/id 5]]}}
+```
+
+### Querying
+
+This library implements a fast EQL engine for Clojure data.
+
+```clojure
+(a/pull animorphs-3 [[:person/id 1]])
+;; => {[:person/id 1] {:person/id 1
+                       :person/name "Macro"
+                       :friend/best [:person/id 3]}}
+```
+
+You can join on idents and keys within entities, and it will resolve any
+references found in order to continue the query:
+
+```clojure
+(a/pull animorphs-3 [{[:person/id 1] [:person/name
+                                      {:friend/best [:person/name]}]}])
+;; => {[:person/id 1] {:person/name "Marco"
+;;                     :friend/best {:person/name "Jake"}}}
+```
+
+Top-level keys in the db can also be joined on.
+
+```clojure
+(a/pull animorphs-3 [{:species [{:andalites [:person/name]}]}])
+;; => {:species {:andalites {:person/name "Ax"}}}
+```
+
+Recursion is supported:
+
+```clojure
+(def query '[{[:person/id 0] [:person/id
+                              :person/name
+                              {:friend/list ...}]}])
+
+(= (-> (a/pull animorphs-3 query)
+       (get [:person/id 0]))
+   data))
+;; => true
+```
+
+See the EQL docs for more examples of what's possible!
+
+
 ## Features
 
 - [x] Supports Clojure and ClojureScript
-  - [x] Normalized DB
-  - [x] EQL queries
-- [x] Auto normalization of nested data
-- [x] A custom map implementation for lazy retrieval of entities 
+- [x] Auto normalization
 - [ ] Full EQL query spec
   - [x] Props
   - [x] Joins
   - [x] Idents
   - [x] Unions
   - [ ] Recursion
+    - [x] Infinite recursion
+    - [ ] Bounded recursion
   - [ ] Preserve query meta on results
 - [x] Custom schema
 
