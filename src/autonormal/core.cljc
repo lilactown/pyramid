@@ -9,9 +9,14 @@
   [key id])
 
 
+(defn- default-schema
+  [key]
+  (= (name key) "id"))
+
+
 (defn ident-of
   [schema entity]
-  (let [schema (or schema #(= (name %) "id"))]
+  (let [schema (or schema default-schema)]
     (loop [kvs entity]
       (when-some [[k v] (first kvs)]
         (if (and (keyword? k)
@@ -25,9 +30,9 @@
   (and (vector? x)
        (= 2 (count x))
        (keyword? (first x))
-       (-> (first x)
-           (name)
-           (= "id"))))
+       (if (some? schema)
+         (schema (first x))
+         (default-schema (first x)))))
 
 
 (defn entity-map?
@@ -151,8 +156,10 @@
     (cond
       (map? data) [(:key node)
                    (let [result (if (ident? schema (:key node))
+                                  ;; ident query
                                   (get-in db (:key node) not-found)
                                   (get data (:key node) not-found))]
+                     ;; ident result
                      (if (ident? schema result)
                        (get-in db result not-found)
                        result))]
