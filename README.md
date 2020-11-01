@@ -2,7 +2,8 @@
 
 A library for storing graph data in a Clojure map that automatically
 [normalizes](https://en.wikipedia.org/wiki/Database_normalization) nested data
-and allows querying via [EQL](https://edn-query-language.org/eql/1.0.0/what-is-eql.html). It is optimized for read (query) performance.
+and allows querying via [EQL](https://edn-query-language.org/eql/1.0.0/what-is-eql.html),
+optimized for read (query) performance.
 
 ## Installation
 
@@ -24,8 +25,8 @@ of datalog, as being a good use case for **autonormal**.
 A `db` is simply a map with a tabular structure of entities, potentially with
 references to other entities.
 
-**Autonormal** currently makes a very conventional assumption: your entities are
-identified by a keyword whose name is `"id"`, e.g. `:id`, `:person/id`,
+**Autonormal** currently makes a default conventional assumption: your entities
+are identified by a keyword whose name is `"id"`, e.g. `:id`, `:person/id`,
 `:my.corp.product/id`, etc.
 
 ```clojure
@@ -110,6 +111,28 @@ any nested entities. Example:
 ;;                    :person/name "Ax"
 ;;                    :person/species "andalite"}}
 ;;     :species {:andalites [[:person/id 5]]}}
+```
+
+### Custom schema
+
+In the cases where your entities aren't identified via a key named `"id"`, you
+can pass a custom schema to a db.
+
+A "schema" in this case is any function which takes a keyword, and returns
+whether or not it identifies an entity.
+
+```clojure
+(def schema #{:color/label})
+
+(a/db [{:colors [{:color/label "red" :color/hex "#ff0000"}
+                 {:color/label "green" :color/hex "#00ff00"}
+                 {:color/label "blue" :color/hex "#0000ff"}]}]
+      schema)
+;; => {::a/schema #{:color/label}
+;;     :color/label {"red" {:color/label "red" :color/hex "#ff0000"}
+;;                   "green" {:color/label "green" :color/hex "#00ff00"}
+;;                   "blue" {:color/label "blue" :color/hex "#0000ff"}}
+;;     :colors [[:color/label "red"] [:color/label "green"] [:color/label "blue"]]}
 ```
 
 ### Querying
