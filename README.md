@@ -27,7 +27,8 @@ references to other entities.
 
 **Autonormal** currently makes a default conventional assumption: your entities
 are identified by a keyword whose name is `"id"`, e.g. `:id`, `:person/id`,
-`:my.corp.product/id`, etc.
+`:my.corp.product/id`, etc. A custom schema can be provided as well (see
+[Custom schema](#custom-schema) below).
 
 ```clojure
 (require '[autonormal.core :as a])
@@ -56,8 +57,8 @@ are identified by a keyword whose name is `"id"`, e.g. `:id`, `:person/id`,
 ;;                 5 {:person/id 5 :person/name "Ax"}}}
 ```
 
-This is very efficient for getting info about any particular entity; it's just a
-`get-in` away:
+The map structure of a db is very efficient for getting info about any
+particular entity; it's just a `get-in` away:
 
 ```clojure
 (get-in animorphs [:person/id 1])
