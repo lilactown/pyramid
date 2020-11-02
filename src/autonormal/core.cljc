@@ -4,7 +4,7 @@
    [edn-query-language.core :as eql]))
 
 
-(defn ident
+(defn- ident
   [key id]
   [key id])
 
@@ -14,7 +14,7 @@
   (= (name key) "id"))
 
 
-(defn ident-of
+(defn- ident-of
   [schema entity]
   (let [schema (or schema default-schema)]
     (loop [kvs entity]
@@ -25,7 +25,7 @@
           (recur (rest kvs)))))))
 
 
-(defn ident?
+(defn- ident?
   [schema x]
   (and (vector? x)
        (= 2 (count x))
@@ -35,7 +35,7 @@
          (default-schema (first x)))))
 
 
-(defn entity-map?
+(defn- entity-map?
   [schema x]
   (and (map? x)
        (some? (ident-of schema x))))
@@ -223,5 +223,7 @@
   [db query]
   (into
    {}
-   (map #(visit db % {:data db}))
+   (comp
+    (map #(visit db % {:data db}))
+    (filter (comp not #{not-found} second)))
    (:children (eql/query->ast query))))

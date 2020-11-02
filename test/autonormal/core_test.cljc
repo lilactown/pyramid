@@ -194,6 +194,37 @@
                                  :chat.entry/timestamp "7890"}]}
                (a/pull db1 query)))))
 
+
+  (t/testing "not found"
+    (t/is (= {} (a/pull {} [:foo])))
+    (t/is (= {} (a/pull {} [:foo :bar :baz])))
+    (t/is (= {} (a/pull {} [:foo {:bar [:asdf]} :baz])))
+
+    (t/is (= {:foo "bar"}
+             (a/pull {:foo "bar"} [:foo {:bar [:asdf]} :baz])))
+    (t/is (= {:bar {:asdf 123}}
+             (a/pull
+              {:bar {:asdf 123}}
+              [:foo {:bar [:asdf :jkl]} :baz])))
+    (t/is (= {:bar {}}
+             (a/pull
+              (a/db [{:bar {:bar/id 0}}
+                     {:bar/id 0
+                      :qwerty 1234}])
+              [:foo {:bar [:asdf :jkl]} :baz])))
+    (t/is (= {:bar {:asdf "jkl"}}
+             (a/pull
+              (a/db [{:bar {:bar/id 0}}
+                     {:bar/id 0
+                      :asdf "jkl"}])
+              [:foo {:bar [:asdf :jkl]} :baz])))
+    (t/is (= {:bar {}}
+             (a/pull
+              (a/db [{:bar {:bar/id 0}}
+                     {:bar/id 1
+                      :asdf "jkl"}])
+              [:foo {:bar [:asdf :jkl]} :baz]))))
+
   (t/testing "recursion"
     (let [data {:entries
                 {:entry/name "foo"
