@@ -43,7 +43,8 @@ are identified by a keyword whose name is `"id"`, e.g. `:id`, `:person/id`,
 
 ;; you can pass in multiple entities to instantiate a db, so `a/db` gets a vector
 (def animorphs (a/db [data]))
-;; => {:person/id {0 {:person/id 0 
+;; => {::a/schema a/default-schema
+;;     :person/id {0 {:person/id 0 
 ;;                    :person/name "Rachel"
 ;;                    :friend/list [[:person/id 1]
 ;;                                  [:person/id 2]
@@ -75,7 +76,8 @@ However, if you want to accrete more potentially nested data, there's a helpful
   (a/add animorphs {:person/id 1
                     :friend/best {:person/id 3
                                   :friend/best {:person/id 1}}}))
-;; => {:person/id {0 {:person/id 0 
+;; => {::a/schema a/default-schema
+;;     :person/id {0 {:person/id 0 
 ;;                    :person/name "Rachel"
 ;;                    :friend/list [[:person/id 1]
 ;;                                  [:person/id 2]
@@ -107,7 +109,8 @@ any nested entities. Example:
 (def animorphs-3
   (a/add animorphs-2 {:species {:andalites [{:person/id 5
                                              :person/species "andalite"}]}}))
-;; => {:person/id {,,,
+;; => {::a/schema a/default-schema
+;;     :person/id {,,,
 ;;                 5 {:person/id 5
 ;;                    :person/name "Ax"
 ;;                    :person/species "andalite"}}
