@@ -202,3 +202,7 @@ See the EQL docs for more examples of what's possible!
 - [DataScript](https://github.com/tonsky/datascript/) and derivatives
 - [Pathom](https://github.com/wilkerlucio/pathom)
 - [juxt/pull](https://github.com/juxt/pull)
+
+## Copyright
+
+Copyright © 2020 Will Acton. Distributed under the EPL 2.0.
