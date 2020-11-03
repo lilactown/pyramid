@@ -176,7 +176,7 @@ Recursion is supported:
 
 (= (-> (a/pull animorphs-3 query)
        (get [:person/id 0]))
-   data))
+   data)
 ;; => true
 ```
 
