@@ -131,7 +131,27 @@
 (def not-found ::not-found)
 
 
-;; TODO recursion
+(defn- replace-all-nested-lookups
+  [schema x]
+  (cond
+    (map? x)
+    (into
+     {}
+     (map #(vector
+            (key %)
+            (replace-all-nested-lookups schema (val %))))
+     x)
+
+    (ident? schema x)
+    (assoc {} (first x) (second x))
+
+    (coll? x)
+    (into (empty x) (map #(replace-all-nested-lookups schema %)) x)
+
+    :else x))
+
+
+;; TODO bounded recursion
 (defn- visit
   [{::keys [schema] :as db} node {:keys [data parent]}]
   (case (:type node)
@@ -162,7 +182,7 @@
                      ;; ident result
                      (if (ident? schema result)
                        (get-in db result not-found)
-                       result))]
+                       (replace-all-nested-lookups schema result)))]
 
       (coll? data) (into
                     (empty data)
