@@ -164,7 +164,7 @@ Top-level keys in the db can also be joined on.
 
 ```clojure
 (a/pull animorphs-3 [{:species [{:andalites [:person/name]}]}])
-;; => {:species {:andalites {:person/name "Ax"}}}
+;; => {:species {:andalites [{:person/name "Ax"}]}}
 ```
 
 Recursion is supported:
