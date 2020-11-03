@@ -9,20 +9,19 @@
   [key id])
 
 
-(defn- default-schema
+(defn default-schema
   [key]
   (= (name key) "id"))
 
 
 (defn- ident-of
   [schema entity]
-  (let [schema (or schema default-schema)]
-    (loop [kvs entity]
-      (when-some [[k v] (first kvs)]
-        (if (and (keyword? k)
-                 (schema k))
-          (ident k v)
-          (recur (rest kvs)))))))
+  (loop [kvs entity]
+    (when-some [[k v] (first kvs)]
+      (if (and (keyword? k)
+               (schema k))
+        (ident k v)
+        (recur (rest kvs))))))
 
 
 (defn- ident?
@@ -30,9 +29,7 @@
   (and (vector? x)
        (= 2 (count x))
        (keyword? (first x))
-       (if (some? schema)
-         (schema (first x))
-         (default-schema (first x)))))
+       (schema (first x))))
 
 
 (defn- entity-map?
@@ -117,6 +114,7 @@
 
 (defn db
   ([] {})
+  ([] {::schema default-schema})
   ([entities]
    (db entities nil))
   ([entities schema]
@@ -124,7 +122,7 @@
     add
     (if (some? schema)
       {::schema schema}
-      {})
+      {::schema default-schema})
     entities)))
 
 
