@@ -82,7 +82,7 @@
          :else queued)
        normalized)
       (if (empty? queued)
-        ;; nothing left to do, return all denormalized entities
+        ;; nothing left to do, return all normalized entities
         (if (entity-map? schema data)
           (conj normalized data)
           normalized)
@@ -96,6 +96,9 @@
 
 
 (defn add
+  "Takes a normalized map (with schema) `db`, and some new `data`.
+
+  Returns a new map with the data normalized and merged into `db`."
   ([{::keys [schema] :as db} data]
    (loop [entities (normalize schema data)
           db' (if (entity-map? schema data)
@@ -113,7 +116,10 @@
 
 
 (defn db
-  ([] {})
+  "Takes an optional collection of `entities`, and an optional `schema` IFn
+  which returns a boolean whether a keyword identifies an entity.
+
+  Returns a new map with the `entities` normalized according to the `schema`."
   ([] {::schema default-schema})
   ([entities]
    (db entities nil))
@@ -238,6 +244,7 @@
 
 
 (defn pull
+  "Execute an EQL query against a normalized map `db`."
   [db query]
   (into
    {}
