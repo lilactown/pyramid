@@ -196,7 +196,6 @@ See the EQL docs for more examples of what's possible!
     - [x] Infinite recursion
     - [ ] Bounded recursion
   - [ ] Preserve query meta on results
-- [x] Custom schema
 
 ## Prior art
 
