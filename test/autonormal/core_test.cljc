@@ -68,9 +68,11 @@
         "refs"))
 
 
-#_(t/deftest custom-schema
+(t/deftest custom-schema
   (t/is (= {:color {"red" {:color "red" :hex "#ff0000"}}}
-           (a/db [{:color "red" :hex "#ff0000"}]))))
+           (a/db [^{:db/ident :color}
+                  {:color "red" :hex "#ff0000"}]))))
+
 
 (def data
   {:people/all [{:person/id 0

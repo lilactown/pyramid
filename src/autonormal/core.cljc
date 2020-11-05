@@ -10,18 +10,20 @@
 
 
 (defn- default-ident
-  [entity]
-  (= (name key) "id"))
+  [k]
+  (and (keyword? k) (= (name k) "id")))
 
 
 (defn- lookup-ref-of
   [entity]
-  (loop [kvs entity]
-    (when-some [[k v] (first kvs)]
-      (if (and (keyword? k)
-               (default-ident k))
-        (lookup-ref k v)
-        (recur (rest kvs))))))
+  (let [entity-ident (if-some [ident-key (get (meta entity) :db/ident)]
+                       #(= ident-key %)
+                       default-ident)]
+    (loop [kvs entity]
+      (when-some [[k v] (first kvs)]
+        (if (entity-ident k)
+          (lookup-ref k v)
+          (recur (rest kvs)))))))
 
 
 (defn- lookup-ref?
