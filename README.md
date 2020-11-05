@@ -27,8 +27,8 @@ references to other entities.
 
 **Autonormal** currently makes a default conventional assumption: your entities
 are identified by a keyword whose name is `"id"`, e.g. `:id`, `:person/id`,
-`:my.corp.product/id`, etc. A custom schema can be provided as well (see
-[Custom schema](#custom-schema) below).
+`:my.corp.product/id`, etc. <!-- A custom schema can be provided as well (see -->
+<!-- [Custom schema](#custom-schema) below). -->
 
 ```clojure
 (require '[autonormal.core :as a])
@@ -117,27 +117,27 @@ any nested entities. Example:
 ;;     :species {:andalites [[:person/id 5]]}}
 ```
 
-### Custom schema
+<!-- ### Custom schema -->
 
-In the cases where your entities aren't identified via a key named `"id"`, you
-can pass a custom schema to a db.
+<!-- In the cases where your entities aren't identified via a key named `"id"`, you -->
+<!-- can pass a custom schema to a db. -->
 
-A "schema" in this case is any function which takes a keyword, and returns
-whether or not it identifies an entity.
+<!-- A "schema" in this case is any function which takes a keyword, and returns -->
+<!-- whether or not it identifies an entity. -->
 
-```clojure
-(def schema #{:color/label})
+<!-- ```clojure -->
+<!-- (def schema #{:color/label}) -->
 
-(a/db [{:colors [{:color/label "red" :color/hex "#ff0000"}
-                 {:color/label "green" :color/hex "#00ff00"}
-                 {:color/label "blue" :color/hex "#0000ff"}]}]
-      schema)
-;; => {::a/schema #{:color/label}
-;;     :color/label {"red" {:color/label "red" :color/hex "#ff0000"}
-;;                   "green" {:color/label "green" :color/hex "#00ff00"}
-;;                   "blue" {:color/label "blue" :color/hex "#0000ff"}}
-;;     :colors [[:color/label "red"] [:color/label "green"] [:color/label "blue"]]}
-```
+<!-- (a/db [{:colors [{:color/label "red" :color/hex "#ff0000"} -->
+<!--                  {:color/label "green" :color/hex "#00ff00"} -->
+<!--                  {:color/label "blue" :color/hex "#0000ff"}]}] -->
+<!--       schema) -->
+<!-- ;; => {::a/schema #{:color/label} -->
+<!-- ;;     :color/label {"red" {:color/label "red" :color/hex "#ff0000"} -->
+<!-- ;;                   "green" {:color/label "green" :color/hex "#00ff00"} -->
+<!-- ;;                   "blue" {:color/label "blue" :color/hex "#0000ff"}} -->
+<!-- ;;     :colors [[:color/label "red"] [:color/label "green"] [:color/label "blue"]]} -->
+<!-- ``` -->
 
 ### Querying
 
