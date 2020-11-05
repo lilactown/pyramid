@@ -4,63 +4,62 @@
    [edn-query-language.core :as eql]))
 
 
-(defn- ident
+(defn- lookup-ref
   [key id]
   [key id])
 
 
-(defn default-schema
-  [key]
+(defn- default-ident
+  [entity]
   (= (name key) "id"))
 
 
-(defn- ident-of
-  [schema entity]
+(defn- lookup-ref-of
+  [entity]
   (loop [kvs entity]
     (when-some [[k v] (first kvs)]
       (if (and (keyword? k)
-               (schema k))
-        (ident k v)
+               (default-schema k))
+        (lookup-ref k v)
         (recur (rest kvs))))))
 
 
-(defn- ident?
-  [schema x]
+(defn- lookup-ref?
+  [x]
   (and (vector? x)
        (= 2 (count x))
-       (keyword? (first x))
-       (schema (first x))))
+       (keyword? (first x))))
 
 
 (defn- entity-map?
-  [schema x]
+  [x]
   (and (map? x)
-       (some? (ident-of schema x))))
+       (some? (lookup-ref-of x))))
 
 
 (defn- replace-all-nested-entities
-  [schema v]
+  [v]
   (cond
-    (entity-map? schema v)
-    (ident-of schema v)
+    (entity-map? v)
+    (lookup-ref-of v)
 
     (map? v) ;; map not an entity
     (into (empty v) (map (juxt
                           first
-                          (comp #(replace-all-nested-entities schema %) second)))
+                          (comp replace-all-nested-entities second)))
           v)
 
-    (and (coll? v) (every? #(entity-map? schema %) v))
-    (into (empty v) (map #(ident-of schema %)) v)
+    (and (coll? v) (every? entity-map? v))
+    (into (empty v) (map lookup-ref-of) v)
 
     (or (sequential? v) (set? v))
-    (into (empty v) (map #(replace-all-nested-entities schema %)) v)
+    (into (empty v) (map replace-all-nested-entities) v)
 
     :else v))
 
 
 (defn- normalize
-  [schema data]
+  [data]
   (loop [kvs data
          data data
          queued []
@@ -69,8 +68,8 @@
       (recur
        ;; move on to the next key
        (rest kvs)
-       ;; update our data with idents
-       (assoc data k (replace-all-nested-entities schema v))
+       ;; update our data with lookup-refs
+       (assoc data k (replace-all-nested-entities v))
        ;; add potential entity v to the queue
        (cond
          (map? v)
@@ -83,14 +82,14 @@
        normalized)
       (if (empty? queued)
         ;; nothing left to do, return all normalized entities
-        (if (entity-map? schema data)
+        (if (entity-map? data)
           (conj normalized data)
           normalized)
         (recur
          (first queued)
          (first queued)
          (rest queued)
-         (if (entity-map? schema data)
+         (if (entity-map? data)
            (conj normalized data)
            normalized))))))
 
@@ -99,16 +98,16 @@
   "Takes a normalized map (with schema) `db`, and some new `data`.
 
   Returns a new map with the data normalized and merged into `db`."
-  ([{::keys [schema] :as db} data]
-   (loop [entities (normalize schema data)
-          db' (if (entity-map? schema data)
+  ([db data]
+   (loop [entities (normalize data)
+          db' (if (entity-map? data)
                 db
                 ;; capture top-level aliases
-                (merge db (replace-all-nested-entities schema data)))]
+                (merge db (replace-all-nested-entities data)))]
      (if-some [entity (first entities)]
        (recur
         (rest entities)
-        (update-in db' (ident-of schema entity)
+        (update-in db' (lookup-ref-of entity)
                    merge entity))
        db')))
   ([db data & more]
@@ -120,15 +119,11 @@
   which returns a boolean whether a keyword identifies an entity.
 
   Returns a new map with the `entities` normalized according to the `schema`."
-  ([] {::schema default-schema})
+  ([] {})
   ([entities]
-   (db entities nil))
-  ([entities schema]
    (reduce
     add
-    (if (some? schema)
-      {::schema schema}
-      {::schema default-schema})
+    {}
     entities)))
 
 
@@ -136,28 +131,28 @@
 
 
 (defn- replace-all-nested-lookups
-  [schema x]
+  [x]
   (cond
     (map? x)
     (into
      {}
      (map #(vector
             (key %)
-            (replace-all-nested-lookups schema (val %))))
+            (replace-all-nested-lookups (val %))))
      x)
 
-    (ident? schema x)
+    (lookup-ref? x)
     (assoc {} (first x) (second x))
 
     (coll? x)
-    (into (empty x) (map #(replace-all-nested-lookups schema %)) x)
+    (into (empty x) (map replace-all-nested-lookups) x)
 
     :else x))
 
 
 ;; TODO bounded recursion
 (defn- visit
-  [{::keys [schema] :as db} node {:keys [data parent]}]
+  [db node {:keys [data parent]}]
   (case (:type node)
     :union
     (into
@@ -179,14 +174,14 @@
     :prop
     (cond
       (map? data) [(:key node)
-                   (let [result (if (ident? schema (:key node))
+                   (let [result (if (lookup-ref? (:key node))
                                   ;; ident query
                                   (get-in db (:key node) not-found)
                                   (get data (:key node) not-found))]
-                     ;; ident result
-                     (if (ident? schema result)
+                     ;; lookup-ref result
+                     (if (lookup-ref? result)
                        (get-in db result not-found)
-                       (replace-all-nested-lookups schema result)))]
+                       (replace-all-nested-lookups result)))]
 
       (coll? data) (into
                     (empty data)
@@ -197,15 +192,19 @@
                     data))
 
     :join
-    (let [key-result (if (ident? schema (:key node))
+    (let [key-result (if (lookup-ref? (:key node))
                        (get-in db (:key node) not-found)
                        (get data (:key node) not-found))]
       [(:key node)
        (let [data (cond
-                    (ident? schema key-result)
+                    (lookup-ref? key-result)
                     (get-in db key-result)
 
-                    (and (coll? key-result) (every? #(ident? schema %) key-result))
+                    ;; not a coll
+                    (map? key-result)
+                    key-result
+
+                    (and (coll? key-result) (every? lookup-ref? key-result))
                     (into
                      (empty key-result)
                      (map #(get-in db %))

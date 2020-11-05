@@ -5,12 +5,10 @@
 
 
 (t/deftest normalization
-  (t/is (= {::a/schema a/default-schema
-            :person/id {0 {:person/id 0}}}
+  (t/is (= {:person/id {0 {:person/id 0}}}
            (a/db [{:person/id 0}]))
         "a single entity")
-  (t/is (= {::a/schema a/default-schema
-            :person/id {0 {:person/id 0
+  (t/is (= {:person/id {0 {:person/id 0
                            :person/name "asdf"}
                         1 {:person/id 1
                            :person/name "jkl"}}}
@@ -19,8 +17,7 @@
                   {:person/id 1
                    :person/name "jkl"}]))
         "multiple entities with attributes")
-  (t/is (= {::a/schema a/default-schema
-            :person/id {0 {:person/id 0
+  (t/is (= {:person/id {0 {:person/id 0
                            :person/name "asdf"}
                         1 {:person/id 1
                            :person/name "jkl"}}
@@ -31,8 +28,7 @@
                             {:person/id 1
                              :person/name "jkl"}] } ]))
         "nested under a key")
-  (t/is (= {::a/schema a/default-schema
-            :person/id
+  (t/is (= {:person/id
             {123
              {:person/id 123,
               :person/name "Will",
@@ -72,11 +68,9 @@
         "refs"))
 
 
-(t/deftest schema
-  (t/is (= {::a/schema #{:color}
-            :color {"red" {:color "red" :hex "#ff0000"}}}
-           (a/db [{:color "red" :hex "#ff0000"}]
-                 #{:color}))))
+#_(t/deftest custom-schema
+  (t/is (= {:color {"red" {:color "red" :hex "#ff0000"}}}
+           (a/db [{:color "red" :hex "#ff0000"}]))))
 
 (def data
   {:people/all [{:person/id 0
@@ -209,8 +203,7 @@
              (a/pull {:foo "bar"} [:foo {:bar [:asdf]} :baz])))
     (t/is (= {:bar {:asdf 123}}
              (a/pull
-              {::a/schema a/default-schema
-               :bar {:asdf 123}}
+              {:bar {:asdf 123}}
               [:foo {:bar [:asdf :jkl]} :baz])))
     (t/is (= {:bar {}}
              (a/pull
@@ -233,18 +226,18 @@
 
   (t/testing "recursion"
     (let [data {:entries
-                {:entry/name "foo"
+                {:entry/id "foo"
                  :entry/folders
-                 [{:entry/name "bar"}
-                  {:entry/name "baz"
+                 [{:entry/id "bar"}
+                  {:entry/id "baz"
                    :entry/folders
-                   [{:entry/name "asdf"
+                   [{:entry/id "asdf"
                      :entry/folders
-                     [{:entry/name "qwerty"}]}
-                    {:entry/name "jkl"
+                     [{:entry/id "qwerty"}]}
+                    {:entry/id "jkl"
                      :entry/folders
-                     [{:entry/name "uiop"}]}]}]} }
-          db (a/db [data] #{:entry/name})]
+                     [{:entry/id "uiop"}]}]}]} }
+          db (a/db [data])]
       (t/is (= data
-               (a/pull db '[{:entries [:entry/name
+               (a/pull db '[{:entries [:entry/id
                                        {:entry/folders ...}]}]))))))
