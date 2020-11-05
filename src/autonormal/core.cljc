@@ -19,7 +19,7 @@
   (loop [kvs entity]
     (when-some [[k v] (first kvs)]
       (if (and (keyword? k)
-               (default-schema k))
+               (default-ident k))
         (lookup-ref k v)
         (recur (rest kvs))))))
 
@@ -95,7 +95,7 @@
 
 
 (defn add
-  "Takes a normalized map (with schema) `db`, and some new `data`.
+  "Takes a normalized map `db`, and some new `data`.
 
   Returns a new map with the data normalized and merged into `db`."
   ([db data]
@@ -115,10 +115,9 @@
 
 
 (defn db
-  "Takes an optional collection of `entities`, and an optional `schema` IFn
-  which returns a boolean whether a keyword identifies an entity.
+  "Takes an optional collection of `entities`.
 
-  Returns a new map with the `entities` normalized according to the `schema`."
+  Returns a new map with the `entities` normalized."
   ([] {})
   ([entities]
    (reduce
