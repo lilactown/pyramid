@@ -27,8 +27,7 @@ references to other entities.
 
 **Autonormal** currently makes a default conventional assumption: your entities
 are identified by a keyword whose name is `"id"`, e.g. `:id`, `:person/id`,
-`:my.corp.product/id`, etc. <!-- A custom schema can be provided as well (see -->
-<!-- [Custom schema](#custom-schema) below). -->
+`:my.corp.product/id`, etc.
 
 ```clojure
 (require '[autonormal.core :as a])
@@ -43,8 +42,7 @@ are identified by a keyword whose name is `"id"`, e.g. `:id`, `:person/id`,
 
 ;; you can pass in multiple entities to instantiate a db, so `a/db` gets a vector
 (def animorphs (a/db [data]))
-;; => {::a/schema a/default-schema
-;;     :person/id {0 {:person/id 0 
+;; => {:person/id {0 {:person/id 0 
 ;;                    :person/name "Rachel"
 ;;                    :friend/list [[:person/id 1]
 ;;                                  [:person/id 2]
@@ -76,8 +74,7 @@ However, if you want to accrete more potentially nested data, there's a helpful
   (a/add animorphs {:person/id 1
                     :friend/best {:person/id 3
                                   :friend/best {:person/id 1}}}))
-;; => {::a/schema a/default-schema
-;;     :person/id {0 {:person/id 0 
+;; => {:person/id {0 {:person/id 0 
 ;;                    :person/name "Rachel"
 ;;                    :friend/list [[:person/id 1]
 ;;                                  [:person/id 2]
@@ -109,35 +106,12 @@ any nested entities. Example:
 (def animorphs-3
   (a/add animorphs-2 {:species {:andalites [{:person/id 5
                                              :person/species "andalite"}]}}))
-;; => {::a/schema a/default-schema
-;;     :person/id {,,,
+;; => {:person/id {,,,
 ;;                 5 {:person/id 5
 ;;                    :person/name "Ax"
 ;;                    :person/species "andalite"}}
 ;;     :species {:andalites [[:person/id 5]]}}
 ```
-
-<!-- ### Custom schema -->
-
-<!-- In the cases where your entities aren't identified via a key named `"id"`, you -->
-<!-- can pass a custom schema to a db. -->
-
-<!-- A "schema" in this case is any function which takes a keyword, and returns -->
-<!-- whether or not it identifies an entity. -->
-
-<!-- ```clojure -->
-<!-- (def schema #{:color/label}) -->
-
-<!-- (a/db [{:colors [{:color/label "red" :color/hex "#ff0000"} -->
-<!--                  {:color/label "green" :color/hex "#00ff00"} -->
-<!--                  {:color/label "blue" :color/hex "#0000ff"}]}] -->
-<!--       schema) -->
-<!-- ;; => {::a/schema #{:color/label} -->
-<!-- ;;     :color/label {"red" {:color/label "red" :color/hex "#ff0000"} -->
-<!-- ;;                   "green" {:color/label "green" :color/hex "#00ff00"} -->
-<!-- ;;                   "blue" {:color/label "blue" :color/hex "#0000ff"}} -->
-<!-- ;;     :colors [[:color/label "red"] [:color/label "green"] [:color/label "blue"]]} -->
-<!-- ``` -->
 
 ### Querying
 
@@ -195,7 +169,7 @@ See the EQL docs for more examples of what's possible!
   - [ ] Recursion
     - [x] Infinite recursion
     - [ ] Bounded recursion
-  - [ ] Preserve query meta on results
+  - [x] Preserve query meta on results
 
 ## Prior art
 
