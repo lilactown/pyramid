@@ -242,4 +242,65 @@
           db (a/db [data])]
       (t/is (= data
                (a/pull db '[{:entries [:entry/id
-                                       {:entry/folders ...}]}]))))))
+                                       {:entry/folders ...}]}])))))
+
+  (t/testing "query metadata"
+    (t/is (-> db
+              (a/pull ^:foo [])
+              (meta)
+              (:foo))
+          "root")
+    (t/is (-> db
+              (a/pull [^:foo {[:person/id 0] [:person/name]}])
+              (get [:person/id 0])
+              (meta)
+              (:foo))
+          "join")
+    (let [data {:chat/entries
+                [{:message/id 0
+                  :message/text "foo"
+                  :chat.entry/timestamp "1234"}
+                 {:message/id 1
+                  :message/text "bar"
+                  :chat.entry/timestamp "1235"}
+                 {:audio/id 0
+                  :audio/url "audio://asdf.jkl"
+                  :audio/duration 1234
+                  :chat.entry/timestamp "4567"}
+                 {:photo/id 0
+                  :photo/url "photo://asdf_10x10.jkl"
+                  :photo/height 10
+                  :photo/width 10
+                  :chat.entry/timestamp "7890"}]}
+          db1 (a/db [data])
+          query ^:foo [^:bar
+                       {:chat/entries
+                        {:message/id
+                         [:message/id :message/text :chat.entry/timestamp]
+
+                         :audio/id
+                         [:audio/id :audio/url :audio/duration :chat.entry/timestamp]
+
+                         :photo/id
+                         [:photo/id :photo/url :photo/width :photo/height :chat.entry/timestamp]
+
+                         :asdf/jkl [:asdf/jkl]}}]
+          result (a/pull db1 query)]
+      (t/is (= #:chat{:entries [{:message/id 0
+                                 :message/text "foo"
+                                 :chat.entry/timestamp "1234"}
+                                {:message/id 1
+                                 :message/text "bar"
+                                 :chat.entry/timestamp "1235"}
+                                {:audio/id 0
+                                 :audio/url "audio://asdf.jkl"
+                                 :audio/duration 1234
+                                 :chat.entry/timestamp "4567"}
+                                {:photo/id 0
+                                 :photo/url "photo://asdf_10x10.jkl"
+                                 :photo/width 10
+                                 :photo/height 10
+                                 :chat.entry/timestamp "7890"}]}
+               result))
+      (t/is (-> result meta :foo))
+      (t/is (every? #(:bar (meta %)) (get result :chat/entries))))))

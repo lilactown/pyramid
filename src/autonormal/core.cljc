@@ -222,7 +222,7 @@
                                  [(:children parent) parent])]
          (cond
            (map? data) (into
-                        {}
+                        (with-meta {} (:meta node))
                         (comp
                          (map #(visit db % {:data data :parent parent}))
                          (filter seq)
@@ -231,13 +231,14 @@
            (coll? data) (into
                          (empty data)
                          (comp
-                          (map (fn [datum]
-                                 (into
-                                  (empty datum)
-                                  (comp
-                                   (map #(visit db % {:data datum :parent parent}))
-                                   (filter (comp not #{not-found} second)))
-                                  children)))
+                          (map
+                           (fn [datum]
+                             (into
+                              (with-meta (empty datum) (:meta node))
+                              (comp
+                               (map #(visit db % {:data datum :parent parent}))
+                               (filter (comp not #{not-found} second)))
+                              children)))
                           (filter seq))
                          data)
            :else not-found))])))
@@ -246,9 +247,10 @@
 (defn pull
   "Execute an EQL query against a normalized map `db`."
   [db query]
-  (into
-   {}
-   (comp
-    (map #(visit db % {:data db}))
-    (filter (comp not #{not-found} second)))
-   (:children (eql/query->ast query))))
+  (let [root (eql/query->ast query)]
+    (into
+     (with-meta {} (:meta root))
+     (comp
+      (map #(visit db % {:data db}))
+      (filter (comp not #{not-found} second)))
+     (:children root))))
