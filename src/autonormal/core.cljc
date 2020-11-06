@@ -212,19 +212,34 @@
                      key-result)
 
                     :else key-result)
-             [children parent] (cond
-                                 (contains? node :children)
-                                 [(:children node) node]
+             [children new-parent] (cond
+                                     (contains? node :children)
+                                     [(:children node) node]
 
-                                 ;; inifinite recursion
-                                 ;; repeat this query with the new data
-                                 (= (:query node) '...)
-                                 [(:children parent) parent])]
+                                     ;; inifinite recursion
+                                     ;; repeat this query with the new data
+                                     (= (:query node) '...)
+                                     [(:children parent) parent]
+
+                                     (pos-int? (:query node))
+                                     (let [parent (assoc
+                                                   parent :children
+                                                   (mapv
+                                                    (fn [node']
+                                                      (if (= (:key node)
+                                                             (:key node'))
+                                                        (update
+                                                         node' :query
+                                                         dec)
+                                                        node'))
+                                                    (:children parent)))]
+                                       [(:children parent)
+                                        parent]))]
          (cond
            (map? data) (into
                         (with-meta {} (:meta node))
                         (comp
-                         (map #(visit db % {:data data :parent parent}))
+                         (map #(visit db % {:data data :parent new-parent}))
                          (filter seq)
                          (filter (comp not #{not-found} second)))
                         children)
@@ -236,7 +251,7 @@
                              (into
                               (with-meta (empty datum) (:meta node))
                               (comp
-                               (map #(visit db % {:data datum :parent parent}))
+                               (map #(visit db % {:data datum :parent new-parent}))
                                (filter (comp not #{not-found} second)))
                               children)))
                           (filter seq))

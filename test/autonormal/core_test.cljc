@@ -226,7 +226,76 @@
                       :asdf "jkl"}])
               [:foo {:bar [:asdf :jkl]} :baz]))))
 
-  (t/testing "recursion"
+  (t/testing "bounded recursion"
+    (let [data {:entries
+                {:entry/id "foo"
+                 :entry/folders
+                 [{:entry/id "bar"}
+                  {:entry/id "baz"
+                   :entry/folders
+                   [{:entry/id "asdf"
+                     :entry/folders
+                     [{:entry/id "qwerty"}]}
+                    {:entry/id "jkl"
+                     :entry/folders
+                     [{:entry/id "uiop"}]}]}]}}
+          db (a/db [data])]
+      (t/is (= {:entries
+                {:entry/id "foo"
+                 :entry/folders
+                 []}}
+               (a/pull db '[{:entries [:entry/id
+                                       {:entry/folders 0}]}])))
+      (t/is (= {:entries
+                {:entry/id "foo"
+                 :entry/folders
+                 [{:entry/id "bar"}
+                  {:entry/id "baz"
+                   :entry/folders []}]}}
+               (a/pull db '[{:entries [:entry/id
+                                       {:entry/folders 1}]}])))
+      (t/is (= {:entries
+                {:entry/id "foo"
+                 :entry/folders
+                 [{:entry/id "bar"}
+                  {:entry/id "baz"
+                   :entry/folders
+                   [{:entry/id "asdf"
+                     :entry/folders []}
+                    {:entry/id "jkl"
+                     :entry/folders []}]}]}}
+               (a/pull db '[{:entries [:entry/id
+                                       {:entry/folders 2}]}])))
+      (t/is (= {:entries
+                {:entry/id "foo"
+                 :entry/folders
+                 [{:entry/id "bar"}
+                  {:entry/id "baz"
+                   :entry/folders
+                   [{:entry/id "asdf"
+                     :entry/folders
+                     [{:entry/id "qwerty"}]}
+                    {:entry/id "jkl"
+                     :entry/folders
+                     [{:entry/id "uiop"}]}]}]}}
+               (a/pull db '[{:entries [:entry/id
+                                       {:entry/folders 3}]}])))
+      (t/is (= {:entries
+                {:entry/id "foo"
+                 :entry/folders
+                 [{:entry/id "bar"}
+                  {:entry/id "baz"
+                   :entry/folders
+                   [{:entry/id "asdf"
+                     :entry/folders
+                     [{:entry/id "qwerty"}]}
+                    {:entry/id "jkl"
+                     :entry/folders
+                     [{:entry/id "uiop"}]}]}]}}
+               (a/pull db '[{:entries [:entry/id
+                                       {:entry/folders 10}]}])))))
+
+  (t/testing "infinte recursion"
     (let [data {:entries
                 {:entry/id "foo"
                  :entry/folders
