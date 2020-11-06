@@ -18,6 +18,11 @@ cache for [pathom]() APIs. However, you can imagine any time you might reach for
 recursive querying of many attributes and don't need the full expressive power
 of datalog, as being a good use case for **autonormal**.
 
+## Project status
+
+This library is still a work in progress; while mostly complete, it has not been
+tested against real life pathom APIs.
+
 ## Usage
 
 ### Normalizing
@@ -161,14 +166,12 @@ See the EQL docs for more examples of what's possible!
 
 - [x] Supports Clojure and ClojureScript
 - [x] Auto normalization
-- [ ] Full EQL query spec
+- [x] Full EQL query spec
   - [x] Props
   - [x] Joins
   - [x] Idents
   - [x] Unions
-  - [ ] Recursion
-    - [x] Infinite recursion
-    - [ ] Bounded recursion
+  - [x] Recursion
   - [x] Preserve query meta on results
 
 ## Prior art
