@@ -1,14 +1,12 @@
 # autonormal
 
+[![Clojars Project](https://img.shields.io/clojars/v/lilactown/autonormal.svg)](https://clojars.org/lilactown/autonormal) [![cljdoc badge](https://cljdoc.org/badge/lilactown/autonormal)](https://cljdoc.org/d/lilactown/autonormal/CURRENT)
+
+
 A library for storing graph data in a Clojure map that automatically
 [normalizes](https://en.wikipedia.org/wiki/Database_normalization) nested data
 and allows querying via [EQL](https://edn-query-language.org/eql/1.0.0/what-is-eql.html),
 optimized for read (query) performance.
-
-## Installation
-
-This library is still a work in progress; however, you can use git deps to
-install and try it out.
 
 ## Use cases
 
