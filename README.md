@@ -18,8 +18,7 @@ of datalog, as being a good use case for **autonormal**.
 
 ## Project status
 
-This library is still a work in progress; while mostly complete, it has not been
-tested against real life pathom APIs.
+While feature complete, it has not been used in production yet.
 
 ## Usage
 
