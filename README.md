@@ -173,6 +173,7 @@ See the EQL docs for more examples of what's possible!
 
 ## Prior art
 
+- [Fulcro](https://fulcro.fulcrologic.com/)
 - [MapGraph](https://github.com/stuartsierra/mapgraph/blob/master/test/com/stuartsierra/mapgraph/compare.clj)
 - [EntityDB](https://keechma.com/guides/entitydb/)
 - [DataScript](https://github.com/tonsky/datascript/) and derivatives
