@@ -156,7 +156,7 @@ Recursion is supported:
 ;; => true
 ```
 
-See the EQL docs for more examples of what's possible!
+See the EQL docs and tests in this repo for more examples of what's possible!
 
 
 ## Features
@@ -170,6 +170,7 @@ See the EQL docs for more examples of what's possible!
   - [x] Unions
   - [x] Recursion
   - [x] Preserve query meta on results
+  - [x] Parameters
 
 ## Prior art
 
