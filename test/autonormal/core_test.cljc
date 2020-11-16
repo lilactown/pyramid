@@ -140,12 +140,15 @@
                        {[:person/id 1] [:person/age]}]))
         "multiple joins")
 
-  (t/testing "ignores params"
-    (t/is (= {[:person/id 1] #:person{:id 1, :name "Bob", :age 23}}
+  (t/testing "includes params"
+    (t/is (= #:people{:all [#:person{:name "Bob", :id 1}]}
+             (a/pull (assoc db '(:people/all {:with "params"})
+                            [[:person/id 1]]) ;; just bob
+                     '[{(:people/all {:with "params"})
+                        [:person/name :person/id]}])))
+    (t/is (= {}
              (a/pull db '[([:person/id 1] {:with "params"})])))
-    (t/is (= #:people{:all [#:person{:name "Alice"
-                                     :id 0}
-                            #:person{:name "Bob", :id 1}]}
+    (t/is (= {}
              (a/pull db '[{(:people/all {:with "params"})
                            [:person/name :person/id]}]))))
 

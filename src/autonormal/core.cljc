@@ -151,6 +151,13 @@
     :else x))
 
 
+(defn- node->key
+  [node]
+  (if-some [params (:params node)]
+    (list (:key node) params)
+    (:key node)))
+
+
 ;; TODO bounded recursion
 (defn- visit
   [db node {:keys [data parent]}]
@@ -173,29 +180,31 @@
         nil))
 
     :prop
-    (cond
-      (map? data) [(:key node)
-                   (let [result (if (lookup-ref? (:key node))
-                                  ;; ident query
-                                  (get-in db (:key node) not-found)
-                                  (get data (:key node) not-found))]
-                     ;; lookup-ref result
-                     (if (lookup-ref? result)
-                       (get-in db result not-found)
-                       (replace-all-nested-lookups result)))]
+    (let [key (node->key node)]
+      (cond
+        (map? data) [(:key node)
+                     (let [result (if (lookup-ref? key)
+                                    ;; ident query
+                                    (get-in db key not-found)
+                                    (get data key not-found))]
+                       ;; lookup-ref result
+                       (if (lookup-ref? result)
+                         (get-in db result not-found)
+                         (replace-all-nested-lookups result)))]
 
-      (coll? data) (into
-                    (empty data)
-                    (comp
-                     (map #(vector (:key node)
-                                   (get % (:key node) not-found)))
-                     (filter (comp not #{not-found} second)))
-                    data))
+        (coll? data) (into
+                      (empty data)
+                      (comp
+                       (map #(vector key
+                                     (get % key not-found)))
+                       (filter (comp not #{not-found} second)))
+                      data)))
 
     :join
-    (let [key-result (if (lookup-ref? (:key node))
-                       (get-in db (:key node) not-found)
-                       (get data (:key node) not-found))]
+    (let [key (node->key node)
+          key-result (if (lookup-ref? key)
+                       (get-in db key not-found)
+                       (get data key not-found))]
       [(:key node)
        (let [data (cond
                     (lookup-ref? key-result)
@@ -226,8 +235,8 @@
                                                    parent :children
                                                    (mapv
                                                     (fn [node']
-                                                      (if (= (:key node)
-                                                             (:key node'))
+                                                      (if (= key
+                                                             (node->key node'))
                                                         (update
                                                          node' :query
                                                          dec)
