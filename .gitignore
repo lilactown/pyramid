@@ -3,3 +3,6 @@
 /.cljs_node_repl/
 /.cpcache/
 /.nrepl-port
+/target/
+/pom.xml.asc
+/pom.xml
