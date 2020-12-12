@@ -298,7 +298,7 @@
                (a/pull db '[{:entries [:entry/id
                                        {:entry/folders 10}]}])))))
 
-  (t/testing "infinte recursion"
+  (t/testing "infinite recursion"
     (let [data {:entries
                 {:entry/id "foo"
                  :entry/folders
@@ -376,3 +376,32 @@
                result))
       (t/is (-> result meta :foo))
       (t/is (every? #(:bar (meta %)) (get result :chat/entries))))))
+
+
+(t/deftest pull-report
+  (t/is (= {:data {:people/all [{:person/name "Alice"
+                                 :person/id 0}
+                                {:person/name "Bob"
+                                 :person/id 1}]}
+            :entities #{[:person/id 0] [:person/id 1]}}
+           (a/pull-report db [{:people/all [:person/name :person/id]}]))
+        "basic join + prop")
+  (t/is (= {:data #:people{:all [{:person/name "Alice"
+                                  :person/id 0
+                                  :best-friend #:person{:name "Bob", :id 1 :age 23}}
+                                 #:person{:name "Bob", :id 1}]}
+            :entities #{[:person/id 0] [:person/id 1]}}
+           (a/pull-report db [#:people{:all [:person/name :person/id :best-friend]}]))
+        "join + prop + join ref lookup")
+  (t/is (= {:data {[:person/id 1] #:person{:id 1, :name "Bob", :age 23}}
+            :entities #{[:person/id 1]}}
+           (a/pull-report db [[:person/id 1]]))
+        "ident acts as ref lookup")
+  (t/is (= {:data {[:person/id 0] {:person/id 0
+                                   :person/name "Alice"
+                                   :person/age 17
+                                   :best-friend {:person/id 1}
+                                   :person/favorites #:favorite{:ice-cream "vanilla"}}}
+            :entities #{[:person/id 0]}}
+           (a/pull-report db [[:person/id 0]]))
+        "ident does not resolve nested refs"))
