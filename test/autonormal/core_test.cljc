@@ -379,19 +379,16 @@
 
 
 (t/deftest pull-report
-  (t/is (= {:data {:people/all [{:person/name "Alice"
-                                 :person/id 0}
-                                {:person/name "Bob"
-                                 :person/id 1}]}
+  (t/is (= {:data {:people/all [{:person/name "Alice"}
+                                {:person/name "Bob"}]}
             :entities #{[:person/id 0] [:person/id 1]}}
-           (a/pull-report db [{:people/all [:person/name :person/id]}]))
+           (a/pull-report db [{:people/all [:person/name]}]))
         "basic join + prop")
   (t/is (= {:data #:people{:all [{:person/name "Alice"
-                                  :person/id 0
                                   :best-friend #:person{:name "Bob", :id 1 :age 23}}
-                                 #:person{:name "Bob", :id 1}]}
+                                 #:person{:name "Bob"}]}
             :entities #{[:person/id 0] [:person/id 1]}}
-           (a/pull-report db [#:people{:all [:person/name :person/id :best-friend]}]))
+           (a/pull-report db [#:people{:all [:person/name :best-friend]}]))
         "join + prop + join ref lookup")
   (t/is (= {:data {[:person/id 1] #:person{:id 1, :name "Bob", :age 23}}
             :entities #{[:person/id 1]}}
