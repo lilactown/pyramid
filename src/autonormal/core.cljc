@@ -132,6 +132,7 @@
 
 
 (defn- replace-all-nested-lookups
+  "Converts all lookup-refs like [:foo \"bar\"] to maps {:foo \"bar\"}"
   [x]
   (cond
     (map? x)
@@ -158,15 +159,14 @@
     (:key node)))
 
 
-;; TODO bounded recursion
 (defn- visit
-  [db node {:keys [data parent]}]
+  [db node {:keys [data parent entities]}]
   (case (:type node)
     :union
     (into
      {}
      (comp
-      (map #(visit db % {:data data})))
+      (map #(visit db % {:data data :entities entities})))
      (:children node))
 
     :union-entry
@@ -175,7 +175,7 @@
       (if (contains? data union-key)
         (into
          {}
-         (map #(visit db % {:data data}))
+         (map #(visit db % {:data data :entities entities}))
          (:children node))
         nil))
 
@@ -185,11 +185,15 @@
         (map? data) [(:key node)
                      (let [result (if (lookup-ref? key)
                                     ;; ident query
-                                    (get-in db key not-found)
+                                    (do
+                                      (conj! entities key)
+                                      (get-in db key not-found))
                                     (get data key not-found))]
                        ;; lookup-ref result
                        (if (lookup-ref? result)
-                         (get-in db result not-found)
+                         (do
+                           (conj! entities result)
+                           (get-in db result not-found))
                          (replace-all-nested-lookups result)))]
 
         (coll? data) (into
@@ -203,22 +207,29 @@
     :join
     (let [key (node->key node)
           key-result (if (lookup-ref? key)
-                       (get-in db key not-found)
+                       (do
+                         (conj! entities key)
+                         (get-in db key not-found))
                        (get data key not-found))]
       [(:key node)
        (let [data (cond
                     (lookup-ref? key-result)
-                    (get-in db key-result)
+                    (do
+                      (conj! entities key-result)
+                      (get-in db key-result))
 
                     ;; not a coll
                     (map? key-result)
                     key-result
 
                     (and (coll? key-result) (every? lookup-ref? key-result))
-                    (into
-                     (empty key-result)
-                     (map #(get-in db %))
-                     key-result)
+                    (do
+                      (doseq [lookup-ref key-result]
+                        (conj! entities lookup-ref))
+                      (into
+                       (empty key-result)
+                       (map #(get-in db %))
+                       key-result))
 
                     :else key-result)
              [children new-parent] (cond
@@ -248,7 +259,9 @@
            (map? data) (into
                         (with-meta {} (:meta node))
                         (comp
-                         (map #(visit db % {:data data :parent new-parent}))
+                         (map #(visit db % {:data data
+                                            :parent new-parent
+                                            :entities entities}))
                          (filter seq)
                          (filter (comp not #{not-found} second)))
                         children)
@@ -260,7 +273,9 @@
                              (into
                               (with-meta (empty datum) (:meta node))
                               (comp
-                               (map #(visit db % {:data datum :parent new-parent}))
+                               (map #(visit db % {:data datum
+                                                  :parent new-parent
+                                                  :entities entities}))
                                (filter (comp not #{not-found} second)))
                               children)))
                           (filter seq))
@@ -268,13 +283,21 @@
            :else not-found))])))
 
 
-(defn pull
+(defn pull-report
   "Execute an EQL query against a normalized map `db`."
   [db query]
-  (let [root (eql/query->ast query)]
-    (into
-     (with-meta {} (:meta root))
-     (comp
-      (map #(visit db % {:data db}))
-      (filter (comp not #{not-found} second)))
-     (:children root))))
+  (let [root (eql/query->ast query)
+        entities (transient #{})
+        data (into
+              (with-meta {} (:meta root))
+              (comp
+               (map #(visit db % {:data db :entities entities}))
+               (filter (comp not #{not-found} second)))
+              (:children root))]
+    {:data data
+     :entities (persistent! entities)}))
+
+
+(defn pull
+  [db query]
+  (:data (pull-report db query)))
