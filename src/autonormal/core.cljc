@@ -1,6 +1,7 @@
 (ns autonormal.core
   (:refer-clojure :exclude [ident?])
   (:require
+   [clojure.set]
    [edn-query-language.core :as eql]))
 
 
@@ -96,15 +97,12 @@
            normalized))))))
 
 
-(declare add)
-
-
 (defn add-report
   "Takes a normalized map `db`, and some new `data`.
 
   Returns a map containing keys:
   - `:db`, the data normalized and merged into `db`.
-  - `:entities`, a collection of entities found in `data`"
+  - `:entities`, a set of entities found in `data`"
   ([db data]
    (let [initial-entities (normalize data)]
      (loop [entities initial-entities
@@ -118,10 +116,7 @@
           (update-in db' (lookup-ref-of entity)
                      merge entity))
          {:entities (set initial-entities)
-          :db db'}))))
-  ([db data & more]
-   (reduce add (add db data) more)
-   ))
+          :db db'})))))
 
 
 (defn add
@@ -131,7 +126,7 @@
   ([db data]
    (:db (add-report db data)))
   ([db data & more]
-   (apply add-report db data more)))
+   (apply add db data more)))
 
 
 (defn db
