@@ -88,8 +88,20 @@
 
 (t/deftest add-report
   (t/is (= {:db {:person/id {0 {:person/id 0}}}
-            :entities #{{:person/id 0}}}
+            :entities #{[:person/id 0]}}
            (a/add-report {} {:person/id 0})))
+  (t/is (= {:db {:person/id {0 {:person/id 0
+                                :person/name "Gill"
+                                :best-friend [:person/id 1]}
+                             1 {:person/id 1
+                                :person/name "Uma"}}
+                 :me [:person/id 0]}
+            :entities #{[:person/id 0]
+                        [:person/id 1]}}
+           (a/add-report {} {:me {:person/id 0
+                                  :person/name "Gill"
+                                  :best-friend {:person/id 1
+                                                :person/name "Uma"}}})))
   #_(t/is (= {:db {:person/id {0 {:person/id 0 :person/name "Gill"}
                              1 {:person/id 1}}}
             :entities #{{:person/id 0 :person/name "Gill"}
