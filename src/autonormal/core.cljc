@@ -47,10 +47,12 @@
     (lookup-ref-of v)
 
     (map? v) ;; map not an entity
-    (into (empty v) (map (juxt
-                          first
-                          (comp replace-all-nested-entities second)))
-          v)
+    (into
+     (empty v)
+     (map
+      (juxt first
+            (comp replace-all-nested-entities second)))
+     v)
 
     (and (coll? v) (every? entity-map? v))
     (into (empty v) (map lookup-ref-of) v)
@@ -314,3 +316,31 @@
 (defn pull
   [db query]
   (:data (pull-report db query)))
+
+
+(defn- delete-nested-entity
+  [lookup-ref v]
+  (cond
+    (map? v) (into
+              (empty v)
+              (comp
+               (filter #(not= lookup-ref (val %)))
+               (map
+                (juxt key #(delete-nested-entity lookup-ref (val %)))))
+              v)
+
+    (coll? v) (into
+               (empty v)
+               (comp
+                (filter #(not= lookup-ref %))
+                (map #(delete-nested-entity lookup-ref %)))
+               v)
+
+    :else v))
+
+
+(defn delete
+  [db lookup-ref]
+  (delete-nested-entity
+   lookup-ref
+   (update db (first lookup-ref) dissoc (second lookup-ref))))

@@ -116,7 +116,7 @@
 (def data
   {:people/all [{:person/id 0
                  :person/name "Alice"
-                 :person/age 17
+                 :person/age 25
                  :best-friend {:person/id 1}
                  :person/favorites
                  {:favorite/ice-cream "vanilla"}}
@@ -158,7 +158,7 @@
         "ident acts as ref lookup")
   (t/is (= {[:person/id 0] {:person/id 0
                             :person/name "Alice"
-                            :person/age 17
+                            :person/age 25
                             :best-friend {:person/id 1}
                             :person/favorites #:favorite{:ice-cream "vanilla"}}}
            (a/pull db [[:person/id 0]]))
@@ -435,9 +435,18 @@
         "ident acts as ref lookup")
   (t/is (= {:data {[:person/id 0] {:person/id 0
                                    :person/name "Alice"
-                                   :person/age 17
+                                   :person/age 25
                                    :best-friend {:person/id 1}
                                    :person/favorites #:favorite{:ice-cream "vanilla"}}}
             :entities #{[:person/id 0]}}
            (a/pull-report db [[:person/id 0]]))
         "ident does not resolve nested refs"))
+
+
+(t/deftest delete
+  (t/is (= {:people/all [[:person/id 0]]
+            :person/id {0 {:person/id 0
+                           :person/name "Alice"
+                           :person/age 25
+                           :person/favorites #:favorite{:ice-cream "vanilla"}}}}
+           (a/delete db [:person/id 1]))))

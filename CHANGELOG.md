@@ -1,5 +1,11 @@
 # CHANGELOG.md
 
+## UNRELEASED
+
+### Added
+
+* `delete`, which dissocs an entity from the db and removes all references to it
+
 ## 1.0.2
 
 ### Added
