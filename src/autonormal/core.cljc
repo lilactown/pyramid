@@ -96,24 +96,42 @@
            normalized))))))
 
 
+(declare add)
+
+
+(defn add-report
+  "Takes a normalized map `db`, and some new `data`.
+
+  Returns a map containing keys:
+  - `:db`, the data normalized and merged into `db`.
+  - `:entities`, a collection of entities found in `data`"
+  ([db data]
+   (let [initial-entities (normalize data)]
+     (loop [entities initial-entities
+            db' (if (entity-map? data)
+                  db
+                  ;; capture top-level aliases
+                  (merge db (replace-all-nested-entities data)))]
+       (if-some [entity (first entities)]
+         (recur
+          (rest entities)
+          (update-in db' (lookup-ref-of entity)
+                     merge entity))
+         {:entities (set initial-entities)
+          :db db'}))))
+  ([db data & more]
+   (reduce add (add db data) more)
+   ))
+
+
 (defn add
   "Takes a normalized map `db`, and some new `data`.
 
   Returns a new map with the data normalized and merged into `db`."
   ([db data]
-   (loop [entities (normalize data)
-          db' (if (entity-map? data)
-                db
-                ;; capture top-level aliases
-                (merge db (replace-all-nested-entities data)))]
-     (if-some [entity (first entities)]
-       (recur
-        (rest entities)
-        (update-in db' (lookup-ref-of entity)
-                   merge entity))
-       db')))
+   (:db (add-report db data)))
   ([db data & more]
-   (reduce add (add db data) more)))
+   (apply add-report db data more)))
 
 
 (defn db

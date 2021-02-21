@@ -74,6 +74,33 @@
                   {:color "red" :hex "#ff0000"}]))))
 
 
+(t/deftest add
+  (t/is (= {:person/id {0 {:person/id 0}}}
+           (a/add {} {:person/id 0})))
+  (t/is (= {:person/id {0 {:person/id 0 :person/name "Gill"}
+                        1 {:person/id 1}}}
+           (a/add
+            {}
+            {:person/id 0}
+            {:person/id 1}
+            {:person/id 0 :person/name "Gill"}))))
+
+
+(t/deftest add-report
+  (t/is (= {:db {:person/id {0 {:person/id 0}}}
+            :entities #{{:person/id 0}}}
+           (a/add-report {} {:person/id 0})))
+  (t/is (= {:db {:person/id {0 {:person/id 0 :person/name "Gill"}
+                             1 {:person/id 1}}}
+            :entities #{{:person/id 0 :perosn/id "Gill"}
+                        {:person/id 1}}}
+           (a/add-report
+            {}
+            {:person/id 0}
+            {:person/id 1}
+            {:person/id 0 :person/name "Gill"}))))
+
+
 (def data
   {:people/all [{:person/id 0
                  :person/name "Alice"
