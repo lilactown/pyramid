@@ -115,7 +115,7 @@
           (rest entities)
           (update-in db' (lookup-ref-of entity)
                      merge entity))
-         {:entities (set initial-entities)
+         {:entities (set (map lookup-ref-of initial-entities))
           :db db'})))))
 
 
@@ -126,7 +126,7 @@
   ([db data]
    (:db (add-report db data)))
   ([db data & more]
-   (apply add db data more)))
+   (reduce add (add db data) more)))
 
 
 (defn db
