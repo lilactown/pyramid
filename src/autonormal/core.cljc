@@ -57,7 +57,7 @@
     (and (coll? v) (every? entity-map? v))
     (into (empty v) (map lookup-ref-of) v)
 
-    (or (sequential? v) (set? v))
+    (coll? v)
     (into (empty v) (map replace-all-nested-entities) v)
 
     :else v))
@@ -80,7 +80,7 @@
          (map? v)
          (conj queued v)
 
-         (coll? v)
+         (and (coll? v) (every? entity-map? v))
          (apply conj queued v)
 
          :else queued)

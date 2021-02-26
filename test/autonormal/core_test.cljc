@@ -68,6 +68,14 @@
         "refs"))
 
 
+(t/deftest non-entities
+  (t/is (= {:foo ["bar"]} (a/db [{:foo ["bar"]}])))
+  (t/is (= {:person/id {0 {:person/id 0
+                           :foo ["bar"]}}}
+           (a/db [{:person/id 0
+                   :foo ["bar"]}]))))
+
+
 (t/deftest custom-schema
   (t/is (= {:color {"red" {:color "red" :hex "#ff0000"}}}
            (a/db [^{:db/ident :color}

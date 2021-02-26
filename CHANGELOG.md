@@ -6,6 +6,10 @@
 
 * `delete`, which dissocs an entity from the db and removes all references to it
 
+### Fixed
+
+* Adding and creating databases with entities that have non-entities inside collections
+
 ## 1.0.2
 
 ### Added
