@@ -1,4 +1,4 @@
-(defproject lilactown/autonormal "1.0.3"
+(defproject lilactown/autonormal "1.1.0"
   :description "A library for storing and querying graph data in a Clojure map"
   :url "https://github.com/lilactown/autonormal"
   :license {:name "Eclipse Public License"

@@ -1,5 +1,13 @@
 # CHANGELOG.md
 
+## 1.1.0
+
+This is a minor bump to better reflect changes made in 1.0.3 and 1.0.2.
+
+## Added
+
+* More docstrings
+
 ## 1.0.3
 
 ### Added
