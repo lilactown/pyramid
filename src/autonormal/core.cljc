@@ -1,5 +1,22 @@
 (ns autonormal.core
-  (:refer-clojure :exclude [ident?])
+  "A library for storing graph data in a Clojure map that automatically
+  normalizes nested data and allows querying via EQL.
+
+  Create a new db with `db`. db values are normal maps with a tabular structure.
+
+  Add new ones using `add`.
+
+  Entities are identified by the first key with the name \"id\", e.g.
+  :person/id. Adding data about the same entity will merge them together in
+  order of addition. To replace an entity, `dissoc` it first.
+
+  NOTE: Collections like vectors, sets and lists should not mix entities and
+  non-entities. Collections are recursively walked to find entities.
+
+  Query them w/ EQL using `pull`.
+
+  To get meta-information about what entities were added or queried, use the
+  `add-report` and `pull-report` functions."
   (:require
    [clojure.set]
    [edn-query-language.core :as eql]))
@@ -103,8 +120,8 @@
   "Takes a normalized map `db`, and some new `data`.
 
   Returns a map containing keys:
-  - `:db`, the data normalized and merged into `db`.
-  - `:entities`, a set of entities found in `data`"
+   :db - the data normalized and merged into `db`.
+   :entities - a set of entities found in `data`"
   ([db data]
    (let [initial-entities (normalize data)]
      (loop [entities initial-entities
@@ -299,7 +316,10 @@
 
 
 (defn pull-report
-  "Execute an EQL query against a normalized map `db`."
+  "Executes an EQL query against a normalized map `db`. Returns a map with the
+  following keys:
+    :data - the result of the query
+    :entities - a set of lookup refs that were visited during the query"
   [db query]
   (let [root (eql/query->ast query)
         entities (transient #{})
@@ -314,6 +334,7 @@
 
 
 (defn pull
+  "Executes an EQL query against a normalized map `db` and returns the result."
   [db query]
   (:data (pull-report db query)))
 
@@ -340,6 +361,8 @@
 
 
 (defn delete
+  "Deletes an entity from the db, removing all references to it. A lookup-ref is
+  a vector of [keyword id], e.g. [:person/id \"a123\"]"
   [db lookup-ref]
   (delete-nested-entity
    lookup-ref

@@ -159,6 +159,54 @@ Recursion is supported:
 See the EQL docs and tests in this repo for more examples of what's possible!
 
 
+## More details
+
+Collections like vectors, sets and lists should not mix entities and
+non-entities. Collections are recursively walked to find entities.
+
+To get meta-information about what entities were added or queried, use the
+`add-report` and `pull-report` functions.
+
+To delete an entity and all references to it, use the `delete` function.
+
+## Tips & Tricks
+
+### Replacing an entity
+
+Data that is `add`ed about an existing entity are merged with whatever is in the
+db. To replace an entity, `dissoc` it first:
+
+```clojure
+(-> (a/db [{:person/id 0 :foo "bar"}])
+    (update :person/id dissoc 0)
+    (a/add {:person/id 0 :bar "baz"}))
+;; => {:person/id {0 {:person/id 0 :bar "baz"}}}
+```
+
+### Getting data for a specific entity
+
+Since a db is a simple map, you can always using `get-in` to get basic info
+regarding an entity. However, if your entity contains references, it will not
+resolve those for you. Enter EQL!
+
+To write an EQL query to get info about a specific entity, you can use an _ident_
+to begin your query:
+
+```clojure
+(a/pull animorphs-3 [[:person/id 1]])
+;; => {[:person/id 1] 
+;;     {:person/id 1, :person/name "Marco", :friend/best #:person{:id 3}}}
+```
+
+You can add to the query to resolve references and get information about, e.g.
+Marco's best friend:
+
+```clojure
+(a/pull animorphs-3 [{[:person/id 1] [:person/name
+                                      {:friend/best [:person/name]}]}])
+;; => {[:person/id 1] {:person/name "Marco", :friend/best #:person{:name "Jake"}}}
+```
+
 ## Features
 
 - [x] Supports Clojure and ClojureScript
@@ -171,6 +219,8 @@ See the EQL docs and tests in this repo for more examples of what's possible!
   - [x] Recursion
   - [x] Preserve query meta on results
   - [x] Parameters
+- [x] Reports on what entities were added / visited while querying
+- [x] `delete` an entity
 
 ## Prior art
 
