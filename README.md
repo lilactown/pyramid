@@ -185,7 +185,7 @@ db. To replace an entity, `dissoc` it first:
 
 ### Getting data for a specific entity
 
-Since a db is a simple map, you can always using `get-in` to get basic info
+Since a db is a simple map, you can always use `get-in` to get basic info
 regarding an entity. However, if your entity contains references, it will not
 resolve those for you. Enter EQL!
 
