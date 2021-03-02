@@ -11,8 +11,8 @@ optimized for read (query) performance.
 ## Use cases
 
 The primary use case this library was developed for was to act as a client side
-cache for [pathom]() APIs. However, you can imagine any time you might reach for
-[DataScript]() to store data as entities, but where you need fast nested /
+cache for [pathom](https://github.com/wilkerlucio/pathom) APIs. However, you can imagine any time you might reach for
+[DataScript](https://github.com/tonsky/datascript/) to store data as entities, but where you need fast nested /
 recursive querying of many attributes and don't need the full expressive power
 of datalog, as being a good use case for **autonormal**.
 
