@@ -16,6 +16,10 @@ cache for [pathom](https://github.com/wilkerlucio/pathom) APIs. However, you can
 recursive querying of many attributes and don't need the full expressive power
 of datalog, as being a good use case for **autonormal**.
 
+Another common use case is like a `select-keys` on steroids: the ability to do nested selections
+on complex maps with nested collections pops up very often in code. Autonormal can take any non-normalized
+map and execute an EQL query on it to handle this.
+
 ## Project status
 
 While feature complete, it has not been used in production yet.
