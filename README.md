@@ -105,8 +105,11 @@ date in your system, e.g. in an atom.
 ### Adding non-entities
 
 Maps that are `add`ed are typically entities, but you can also add arbitrary
-maps and `add` will merge the map with the database, normalizing and referencing
-any nested entities. Example:
+maps and `add` will merge any non-entities with the database, normalizing and
+referencing any nested entities.
+
+Using this capability, you can create additional indexes on your entities.
+Example:
 
 ```clojure
 (def animorphs-3
