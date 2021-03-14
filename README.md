@@ -232,7 +232,7 @@ Marco's best friend:
 ## Prior art
 
 - [Fulcro](https://fulcro.fulcrologic.com/)
-- [eql-refdb](https://github.com/souenzzo/eql-refdb)
+- @souenzzo's POC [eql-refdb](https://github.com/souenzzo/eql-refdb)
 - [MapGraph](https://github.com/stuartsierra/mapgraph/blob/master/test/com/stuartsierra/mapgraph/compare.clj)
 - [EntityDB](https://keechma.com/guides/entitydb/)
 - [DataScript](https://github.com/tonsky/datascript/) and derivatives
