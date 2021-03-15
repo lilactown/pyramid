@@ -395,7 +395,9 @@
                             data)))
 
 (defn data->query
-  "Helper function to transform a data into an output shape."
+  "Returns an EQL query that matches the shape of `data` passed to it.
+  Useful when you have some data already and want to see what an EQL query that
+  returns that data would look like."
   [data]
   (-> data
       data->ast
