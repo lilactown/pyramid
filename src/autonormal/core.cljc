@@ -367,3 +367,38 @@
   (delete-nested-entity
    lookup-ref
    (update db (first lookup-ref) dissoc (second lookup-ref))))
+
+(defn data->ast
+  "Like autonormal.core/data->query, but returns the AST."
+  [data]
+  (cond
+    (map? data) {:type     :root
+                 :children (for [[k v] data
+                                 :let [node (data->ast v)]]
+                             (if node
+                               (assoc node
+                                 :type :join
+                                 :key k
+                                 :query (eql/ast->query node)
+                                 :dispatch-key (if (coll? k)
+                                                 (first k)
+                                                 k))
+                               {:type         :prop
+                                :key          k
+                                :dispatch-key k}))}
+    ;; pathom uses  `sequential?` here.
+    (coll? data) (transduce (map data->ast)
+                            (fn
+                              ([] {:type :root :children []})
+                              ([result] result)
+                              ([result el] (eql/merge-asts result el)))
+                            data)))
+
+(defn data->query
+  "Returns an EQL query that matches the shape of `data` passed to it.
+  Useful when you have some data already and want to see what an EQL query that
+  returns that data would look like."
+  [data]
+  (-> data
+      data->ast
+      eql/ast->query))

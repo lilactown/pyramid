@@ -458,3 +458,13 @@
                            :person/age 25
                            :person/favorites #:favorite{:ice-cream "vanilla"}}}}
            (a/delete db [:person/id 1]))))
+
+(t/deftest data->query
+  (t/is (= [:a]
+           (a/data->query {:a 42})))
+  (t/is (= [{:a [:b]}]
+           (a/data->query {:a {:b 42}})))
+  (t/is (= [{:a [:b :c]}]
+           (a/data->query {:a [{:b 42} {:c :d}]})))
+  (t/is (= [{[:a 42] [:b]}]
+           (a/data->query {[:a 42] {:b 33}}))))
