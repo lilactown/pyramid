@@ -1,5 +1,11 @@
 # CHANGELOG.md
 
+## 1.1.1
+
+### Fixed
+
+- `:autonormal.core/not-found` values were still present in union entries, are now filtered out appropriately
+
 ## 1.1.0
 
 This is a minor bump to better reflect changes made in 1.0.3 and 1.0.2.
