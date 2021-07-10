@@ -274,7 +274,33 @@
               (a/db [{:bar {:bar/id 0}}
                      {:bar/id 1
                       :asdf "jkl"}])
-              [:foo {:bar [:asdf :jkl]} :baz]))))
+              [:foo {:bar [:asdf :jkl]} :baz])))
+
+    (t/is (= {:foo [{:bar/id 1
+                     :bar/name "asdf"}
+                    {:baz/id 1
+                     :baz/name "jkl"}]}
+             (a/pull
+              (a/db [{:foo [{:bar/id 1
+                             :bar/name "asdf"}
+                            {:baz/id 1
+                             :baz/name "jkl"}]}])
+              [{:foo {:bar/id [:bar/id :bar/name]
+                      :baz/id [:baz/id :baz/name]}}])))
+
+    (t/is (= {:foo [{:bar/id 1
+                     :bar/name "asdf"}
+                    {:bar/id 2}
+                    {:baz/id 1
+                     :baz/name "jkl"}]}
+             (a/pull
+              (a/db [{:foo [{:bar/id 1
+                             :bar/name "asdf"}
+                            {:bar/id 2}
+                            {:baz/id 1
+                             :baz/name "jkl"}]}])
+              [{:foo {:bar/id [:bar/id :bar/name]
+                      :baz/id [:baz/id :baz/name]}}]))))
 
   (t/testing "bounded recursion"
     (let [data {:entries
@@ -458,6 +484,7 @@
                            :person/age 25
                            :person/favorites #:favorite{:ice-cream "vanilla"}}}}
            (a/delete db [:person/id 1]))))
+
 
 (t/deftest data->query
   (t/is (= [:a]

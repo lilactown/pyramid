@@ -198,16 +198,18 @@
     (into
      {}
      (comp
-      (map #(visit db % {:data data :entities entities})))
+      (map #(visit db % {:data data :entities entities}))
+      (filter (comp not #{not-found} second)))
      (:children node))
 
     :union-entry
     (let [union-key (:union-key node)]
-
       (if (contains? data union-key)
         (into
          {}
-         (map #(visit db % {:data data :entities entities}))
+         (comp
+          (map #(visit db % {:data data :entities entities}))
+          (filter (comp not #{not-found} second)))
          (:children node))
         nil))
 
@@ -367,6 +369,7 @@
   (delete-nested-entity
    lookup-ref
    (update db (first lookup-ref) dissoc (second lookup-ref))))
+
 
 (defn data->ast
   "Like autonormal.core/data->query, but returns the AST."
