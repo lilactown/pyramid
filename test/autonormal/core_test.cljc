@@ -78,8 +78,12 @@
 
 (t/deftest custom-schema
   (t/is (= {:color {"red" {:color "red" :hex "#ff0000"}}}
+           (meta (a/db [{:color "red" :hex "#ff0000"}]
+                  #{:color}))))
+  (t/is (= {:color {"red" {:color "red" :hex "#ff0000"}}}
            (a/db [^{:db/ident :color}
-                  {:color "red" :hex "#ff0000"}]))))
+                  {:color "red" :hex "#ff0000"}]))
+        "local schema"))
 
 
 (t/deftest add

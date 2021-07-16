@@ -33,10 +33,10 @@
 
 
 (defn- lookup-ref-of
-  [entity]
+  [identify entity]
   (let [entity-ident (if-some [ident-key (get (meta entity) :db/ident)]
                        #(= ident-key %)
-                       default-ident)]
+                       identify)]
     (loop [kvs entity]
       (when-some [[k v] (first kvs)]
         (if (entity-ident k)
@@ -52,36 +52,36 @@
 
 
 (defn- entity-map?
-  [x]
+  [identify x]
   (and (map? x)
-       (some? (lookup-ref-of x))))
+       (some? (lookup-ref-of identify x))))
 
 
 (defn- replace-all-nested-entities
-  [v]
+  [identify v]
   (cond
-    (entity-map? v)
-    (lookup-ref-of v)
+    (entity-map? identify v)
+    (lookup-ref-of identify v)
 
     (map? v) ;; map not an entity
     (into
      (empty v)
      (map
       (juxt first
-            (comp replace-all-nested-entities second)))
+            (comp #(replace-all-nested-entities identify %) second)))
      v)
 
-    (and (coll? v) (every? entity-map? v))
-    (into (empty v) (map lookup-ref-of) v)
+    (and (coll? v) (every? #(entity-map? identify %) v))
+    (into (empty v) (map #(lookup-ref-of identify %)) v)
 
     (coll? v)
-    (into (empty v) (map replace-all-nested-entities) v)
+    (into (empty v) (map #(replace-all-nested-entities identify %)) v)
 
     :else v))
 
 
 (defn- normalize
-  [data]
+  [identify data]
   (loop [kvs data
          data data
          queued []
@@ -91,27 +91,27 @@
        ;; move on to the next key
        (rest kvs)
        ;; update our data with lookup-refs
-       (assoc data k (replace-all-nested-entities v))
+       (assoc data k (replace-all-nested-entities identify v))
        ;; add potential entity v to the queue
        (cond
          (map? v)
          (conj queued v)
 
-         (and (coll? v) (every? entity-map? v))
+         (and (coll? v) (every? #(entity-map? identify %) v))
          (apply conj queued v)
 
          :else queued)
        normalized)
       (if (empty? queued)
         ;; nothing left to do, return all normalized entities
-        (if (entity-map? data)
+        (if (entity-map? identify data)
           (conj normalized data)
           normalized)
         (recur
          (first queued)
          (first queued)
          (rest queued)
-         (if (entity-map? data)
+         (if (entity-map? identify data)
            (conj normalized data)
            normalized))))))
 
@@ -123,18 +123,20 @@
    :db - the data normalized and merged into `db`.
    :entities - a set of entities found in `data`"
   ([db data]
-   (let [initial-entities (normalize data)]
+   (let [db-meta (meta db)
+         identify (:db/ident db-meta default-ident)
+         initial-entities (normalize identify data)]
      (loop [entities initial-entities
-            db' (if (entity-map? data)
+            db' (if (entity-map? identify data)
                   db
                   ;; capture top-level aliases
-                  (merge db (replace-all-nested-entities data)))]
+                  (merge db (replace-all-nested-entities identify data)))]
        (if-some [entity (first entities)]
          (recur
           (rest entities)
-          (update-in db' (lookup-ref-of entity)
+          (update-in db' (lookup-ref-of identify entity)
                      merge entity))
-         {:entities (set (map lookup-ref-of initial-entities))
+         {:entities (set (map #(lookup-ref-of identify %) initial-entities))
           :db db'})))))
 
 
@@ -154,9 +156,11 @@
   Returns a new map with the `entities` normalized."
   ([] {})
   ([entities]
+   (db entities default-ident))
+  ([entities identify]
    (reduce
     add
-    {}
+    (with-meta {} {:db/ident identify})
     entities)))
 
 
