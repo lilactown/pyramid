@@ -1,5 +1,12 @@
 # CHANGELOG.md
 
+## 1.2.0
+
+### Added
+
+- `db` now takes a second argument, `identify`, which is a function used to determine whether a key is
+used to identify the entity or not
+
 ## 1.1.1
 
 ### Fixed
