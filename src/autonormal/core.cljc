@@ -18,37 +18,33 @@
   To get meta-information about what entities were added or queried, use the
   `add-report` and `pull-report` functions."
   (:require
+   [autonormal.ident :as ident]
    [clojure.set]
    [edn-query-language.core :as eql]))
 
 
-(defn- lookup-ref
-  [key id]
-  [key id])
-
-
-(defn- default-ident
-  [k]
-  (and (keyword? k) (= (name k) "id")))
+(def default-ident
+  (ident/by
+   (fn ident-by-id [entity]
+     (loop [kvs entity]
+       (when-some [[k v] (first kvs)]
+         (if (= "id" (name k))
+           (ident/ident k v)
+           (recur (rest kvs))))))))
 
 
 (defn- lookup-ref-of
   [identify entity]
-  (let [entity-ident (if-some [ident-key (get (meta entity) :db/ident)]
-                       #(= ident-key %)
-                       identify)]
-    (loop [kvs entity]
-      (when-some [[k v] (first kvs)]
-        (if (entity-ident k)
-          (lookup-ref k v)
-          (recur (rest kvs)))))))
+  (let [identify (if-some [ident-key (get (meta entity) :db/ident)]
+                   (do (prn :ident-key ident-key)
+                       (ident/by-keys ident-key))
+                   identify)]
+    (identify entity)))
 
 
 (defn- lookup-ref?
   [x]
-  (and (vector? x)
-       (= 2 (count x))
-       (keyword? (first x))))
+  (ident/ident? x))
 
 
 (defn- entity-map?

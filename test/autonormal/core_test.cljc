@@ -1,6 +1,7 @@
 (ns autonormal.core-test
   (:require
    [autonormal.core :as a]
+   [autonormal.ident :as ident]
    [clojure.test :as t]))
 
 
@@ -79,7 +80,7 @@
 (t/deftest custom-schema
   (t/is (= {:color {"red" {:color "red" :hex "#ff0000"}}}
            (a/db [{:color "red" :hex "#ff0000"}]
-                 #{:color})))
+                 (ident/by-keys :color))))
   (t/is (= {:color {"red" {:color "red" :hex "#ff0000"}}}
            (a/db [^{:db/ident :color}
                   {:color "red" :hex "#ff0000"}]))
