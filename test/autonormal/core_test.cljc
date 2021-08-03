@@ -1,6 +1,7 @@
 (ns autonormal.core-test
   (:require
    [autonormal.core :as a]
+   [autonormal.ident :as ident]
    [clojure.test :as t]))
 
 
@@ -79,11 +80,37 @@
 (t/deftest custom-schema
   (t/is (= {:color {"red" {:color "red" :hex "#ff0000"}}}
            (a/db [{:color "red" :hex "#ff0000"}]
-                 #{:color})))
+                 (ident/by-keys :color)))
+        "ident/by-keys")
   (t/is (= {:color {"red" {:color "red" :hex "#ff0000"}}}
            (a/db [^{:db/ident :color}
                   {:color "red" :hex "#ff0000"}]))
-        "local schema"))
+        "local schema")
+  (t/testing "complex schema"
+    (let [db (a/db [{:type "person"
+                     :id "1234"
+                     :purchases [{:type "item"
+                                  :id "1234"}]}
+                    {:type "item"
+                     :id "5678"}
+                    {:type "foo"}
+                    {:id "bar"}]
+                   (fn [entity]
+                     (let [{:keys [type id]} entity]
+                       (when (and (some? type) (some? id))
+                         [(keyword type "id") id]))))]
+      (t/is (= {:person/id
+                {"1234" {:type "person", :id "1234", :purchases [[:item/id "1234"]]}},
+                :item/id
+                {"1234" {:type "item", :id "1234"}, "5678" {:type "item", :id "5678"}},
+                :type "foo",
+                :id "bar"}
+               db)
+            "correctly identifies entities")
+      (t/is (= {[:person/id "1234"]
+                {:type "person", :id "1234", :purchases [{:type "item", :id "1234"}]}}
+               (a/pull db [{[:person/id "1234"] [:type :id {:purchases [:type :id]}]}]))
+            "pull"))))
 
 
 (t/deftest add
