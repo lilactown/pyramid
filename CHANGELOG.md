@@ -1,5 +1,56 @@
 # CHANGELOG.md
 
+## 2.0.0
+
+### Breaking
+
+In 1.2.0, we try to figure out how to identify a map by running a fn on each key
+without context. This precludes more complex logic, such as preferring one ID
+over another or using a composite of multiple keys to produce an ident.
+
+Now, when you create a new db value, the optional second argument should be a
+function that takes the entire map as a value and returns either an ident (a
+tuple [key val] that uniquely identifies the entity in your system) or nil.
+
+
+### Added
+
+Additionally, a new namespace `autonormal.ident` is available for composing
+functions for identifying entities.
+
+```clojure
+(require '[autonormal.core :as a]
+         '[autonormal.ident :as ident])
+
+;; creates a new db that will use `person/id` and `:food/name`
+;; to identify entities
+(a/db
+  []
+  (fn [entity]
+    ;; first, check for :person/id
+    (if-let [person-id (:person/id entity)]
+      [:person/id person-id]
+      ;; else, check for :food/name. return nil otherwise
+      (when-let [food-name (:food/name entity)]
+        [:food/name food-name]))))
+
+
+;; autonormal.ident/by is a helper to compose functions that take an entity
+;; and return either an ident or nil
+(a/db [] (ident/by
+           (fn [entity]
+             (when-let [person-id (:person/id entity)]
+               [:person/id person-id]))
+           (fn [entity]
+             (when-let [food-name (:food/name entity)]
+               [:food/name food-name]))))
+
+
+;; autonormal.ident/by-keys is a helper that handles the specific case of
+;; composing keys 
+(a/db [] (ident/by-keys :person/id :food/name))
+```
+
 ## 1.2.0
 
 ### Added
