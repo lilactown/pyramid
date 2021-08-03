@@ -37,8 +37,12 @@
   returns a non-nil value, which should be an ident.
 
   Returns nil if all functions return nil."
-  [& fns]
-  (by* fns))
+  ([f]
+   (fn ident-by-1
+     [entity]
+     (f entity)))
+  ([f & fns]
+   (by* (cons f fns))))
 
 
 (comment
@@ -97,8 +101,10 @@
   key, then returns an ident using that key and the value found.
 
   Returns nil if no keys are found."
-  [& keys]
-  (by-keys* keys))
+  ([key]
+   #(identify-by-key % key))
+  ([key & keys]
+   (by-keys* (cons key keys))))
 
 
 (comment
