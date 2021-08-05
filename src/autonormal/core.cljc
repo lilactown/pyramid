@@ -28,7 +28,9 @@
    (fn ident-by-id [entity]
      (loop [kvs entity]
        (when-some [[k v] (first kvs)]
-         (if (= "id" (name k))
+         (if (and
+               (keyword? k)
+               (= "id" (name k)))
            (ident/ident k v)
            (recur (rest kvs))))))))
 

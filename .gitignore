@@ -6,3 +6,5 @@
 /target/
 /pom.xml.asc
 /pom.xml
+.idea
+*.iml
