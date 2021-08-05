@@ -9,13 +9,6 @@
   (t/is (= {:person/id {0 {:person/id 0}}}
            (a/db [{:person/id 0}]))
         "a single entity")
-  (t/is (= (a/add {} {:id 10
-                      :some-data {1 "hello"
-                                  3 "world"}})
-           {:id {10 {:id 10
-                     :some-data {1 "hello"
-                                 3 "world"}}}})
-    "Map with numbers as keys")
   (t/is (= {:person/id {0 {:person/id 0
                            :person/name "asdf"}
                         1 {:person/id 1
@@ -36,6 +29,13 @@
                             {:person/id 1
                              :person/name "jkl"}]}]))
         "nested under a key")
+  (t/is (= {:person/id {0 {:person/id 0
+                           :some-data {1 "hello"
+                                       3 "world"}}}}
+           (a/db [{:person/id 0
+                   :some-data {1 "hello"
+                               3 "world"}}]))
+    "Map with numbers as keys")
   (t/is (= {:person/id
             {123
              {:person/id 123,
