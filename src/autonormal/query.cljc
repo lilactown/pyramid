@@ -34,6 +34,7 @@
                        (drop 1))
         inputs (->> bindings
                     (drop-while #(not= % :in))
+                    ;; users have to pass in $
                     (drop 2)
                     (cons $))
         clauses (drop 1 clauses)
@@ -50,6 +51,52 @@
              (zipmap (cons db params)))
      :where clauses
      :anomalies anomalies}))
+
+
+(comment
+  ;; simple
+  (parse '[:find ?id ?value
+           :where
+           [?e :foo/id ?id]
+           [?e :foo/value ?value]]
+         {:foo/id {"1234" {:foo/id "1234"
+                           :foo/value "asdf"}}})
+
+  (parse '[:find ?id ?value
+           :where
+           [?e :foo/id ?id]
+           [?e :foo/value]]
+         {:foo/id {"1234" {:foo/id "1234"
+                           :foo/value "asdf"}}})
+
+
+  ;; invalid
+  (parse '[:find ?id ?value
+           :where
+           [:foo/id ?id]]
+         {:foo/id {"1234" {:foo/id "1234"
+                           :foo/value "asdf"}}})
+
+  ;; inputs
+  (parse '[:find ?id ?value
+           :in $ ?a ?b
+           :where
+           [?e :foo/id ?id]
+           [?e :foo/value ?value]]
+         {:foo/id {"1234" {:foo/id "1234"
+                           :foo/value "asdf"}}}
+         "a"
+         "b")
+
+  ;; anomaly, mismatch inputs
+  (parse '[:find ?id ?value
+           :in $ ?a ?b
+           :where
+           [?e :foo/id ?id]
+           [?e :foo/value ?value]]
+         {:foo/id {"1234" {:foo/id "1234"
+                           :foo/value "asdf"}}})
+  )
 
 
 (defn variable?
@@ -107,61 +154,63 @@
     (case (map #(pattern %) triple)
       [:v :v :v]
       (when (= v (get-in db (conj e a)))
-        {})
+        [])
 
       [? :v :v]
-      {e (into
-          []
-          (filter #(= v (get-in db (conj % a))))
-          idents)}
+      (into
+       []
+       (comp
+        (filter #(= v (get-in db (conj % a))))
+        (map (fn [ident] {e ident})))
+       idents)
 
       [:v ? :v]
-      {a (into
-          []
-          (comp
-           (filter #(= v (val %)))
-           (map key) )
-          (get-in db e))}
+      (into
+       []
+       (comp
+        (filter #(= v (val %)))
+        (map key)
+        (map (fn [k] {a k})))
+       (get-in db e))
 
       [:v :v ?]
-      {v (if (contains-in? db (conj e a))
-           [(get-in db (conj e a))]
-           [])}
+      (if (contains-in? db (conj e a))
+        [{v (get-in db (conj e a))}]
+        [])
 
       [? ? :v]
-      (let [paths (mapcat
-                   (fn [ident]
-                     (->> (get-in db ident)
-                          (filter #(= v (val %)))
-                          (map #(vector ident (key %)))))
-                   idents)]
-        {e (mapv first paths)
-         a (mapv second paths)})
+      (mapcat
+       (fn [ident]
+         (->> (get-in db ident)
+              (filter #(= v (val %)))
+              (map (fn [m]
+                     {e ident
+                      a (key m)}))))
+       idents)
 
       [? :v ?]
-      (let [?idents (into
-                     []
-                     (filter #(contains-in? db (conj % a)))
-                     idents)]
-        {e ?idents
-         v (into
-            []
-            (map #(get-in db (conj % a)))
-            ?idents)})
+      (into
+       []
+       (comp
+        (filter #(contains-in? db (conj % a)))
+        (map (fn [ident]
+               {e ident
+                v (get-in db (conj ident a))})))
+       idents)
 
       [:v ? ?]
-      (let [entity (get-in db e)]
-        {a (vec (keys entity))
-         v (vec (vals entity))})
+      (mapv
+       (fn [entry]
+         {a (key entry) v (val entry)})
+       (get-in db e))
 
       [? ? ?]
-      (let [eavs (for [ident idents
-                       :let [entity (get-in db ident)]
-                       [k v] entity]
-                   [ident k v])]
-        {e (mapv first eavs)
-         a (mapv second eavs)
-         v (mapv #(nth % 2) eavs)}))))
+      (for [ident idents
+            :let [entity (get-in db ident)]
+            entry entity]
+        {e ident
+         a (key entry)
+         v (val entry)}))))
 
 
 (comment
@@ -224,6 +273,8 @@
  ;; [? :v ?] found
  (resolve-triple db '[?e :foo/id ?id])
 
+ (resolve-triple db '[?e :foo/bar ?id])
+
  ;; [? :v ?] not-found
  (resolve-triple db '[?e :foo/bat ?bat])
 
@@ -241,54 +292,27 @@
 
 
 
-
-
-
-
-
-#_(defn execute
+(defn execute
   [{:keys [find in where]}]
   (let [db (get in $)
         idents (idents db)]
-    (loop [variables in
-           clauses where
+    (loop [clauses where
            resolved '()]
-      (if-let [[e a v :as clause] (first clauses)]
-        (case (map #(pattern %) clause)
-          [? :v ?]
-          (let [?idents (into
-                         #{}
-                         (filter #(contains-in? db (conj % a)))
-                         idents)
-                ?vals (into
-                       #{}
-                       (map #(get-in db (conj % a)))
-                       ?idents)]
-            (recur
-             variables
-             (rest clauses)
-             (conj
-              resolved
-              {:clause clause
-               :bindings {e ?idents
-                          v ?vals}})))
-
-          [? :v :v]
-          (let [?idents (into
-                         #{}
-                         (filter #(= v (get-in db (conj % a))))
-                         idents)]
-            (recur
-             variables
-             (rest clauses)
-             (conj resolved {:clause clause
-                             :bindings {e ?idents}})))
-
-          [:v :v :v]
-          (let [?idents (filter #(= v (get-in db (conj % a))) idents)]
-            )
-
-          )
+      (if-let [clause (first clauses)]
+        (recur
+         (rest clauses)
+         (let [clause' (mapv
+                        ;; resolve any variables that are contained in `in`
+                        (fn [v]
+                          (if (and (variable? v)
+                                   (contains? in v))
+                            (get in v)
+                            v))
+                        clause)]
+           (conj
+            resolved
+            {:clause clause
+             :result (resolve-triple db clause')})))
         resolved))))
 
 
@@ -299,53 +323,10 @@
                     "456" {:foo/id "456"
                            :foo/bar "asdf"}}
            :foo {:bar "baz"}
-           :asdf "jkl"}}
+           :asdf "jkl"}
+        ?bar "baz"}
    :where
    ([?e :foo/id ?id]
-    [?e :foo/bar "baz"])})
+    [?e :foo/bar ?bar])})
 
 
-(comment
-  ;; simple
-  (parse '[:find ?id ?value
-           :where
-           [?e :foo/id ?id]
-           [?e :foo/value ?value]]
-         {:foo/id {"1234" {:foo/id "1234"
-                           :foo/value "asdf"}}})
-
-  (parse '[:find ?id ?value
-           :where
-           [?e :foo/id ?id]
-           [?e :foo/value]]
-         {:foo/id {"1234" {:foo/id "1234"
-                           :foo/value "asdf"}}})
-
-
-  ;; invalid
-  (parse '[:find ?id ?value
-           :where
-           [:foo/id ?id]]
-         {:foo/id {"1234" {:foo/id "1234"
-                           :foo/value "asdf"}}})
-
-  ;; inputs
-  (parse '[:find ?id ?value
-           :in $ ?a ?b
-           :where
-           [?e :foo/id ?id]
-           [?e :foo/value ?value]]
-         {:foo/id {"1234" {:foo/id "1234"
-                           :foo/value "asdf"}}}
-         "a"
-         "b")
-
-  ;; anomaly, mismatch inputs
-  (parse '[:find ?id ?value
-           :in $ ?a ?b
-           :where
-           [?e :foo/id ?id]
-           [?e :foo/value ?value]]
-         {:foo/id {"1234" {:foo/id "1234"
-                           :foo/value "asdf"}}})
-  )
