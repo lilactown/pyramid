@@ -153,7 +153,15 @@
       (let [entity (get-in db e)]
         {a (vec (keys entity))
          v (vec (vals entity))})
-      )))
+
+      [? ? ?]
+      (let [eavs (for [ident idents
+                       :let [entity (get-in db ident)]
+                       [k v] entity]
+                   [ident k v])]
+        {e (mapv first eavs)
+         a (mapv second eavs)
+         v (mapv #(nth % 2) eavs)}))))
 
 
 (comment
@@ -227,7 +235,8 @@
  (resolve-triple db '[[:foo/id "asdf"] ?a ?v])
 
 
-
+ ;; [? ? ?]
+ (resolve-triple db '[?e ?a ?v])
  )
 
 
