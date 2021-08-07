@@ -1,29 +1,12 @@
 (ns autonormal.query
   (:require
+   [clojure.set :as set]
    [clojure.string :as string]))
 
 
 (def ? '?)
 (def $ '$)
 (def _ '_)
-
-
-(defn- normalize-clause
-  [clause]
-  (if (vector? clause)
-    (case (count clause)
-      ;; [?e ?attr ?value]
-      3
-      {:entity (first clause)
-       :attr (second clause)
-       :value (nth clause 2)}
-
-      ;; [?e ?attr]
-      2
-      {:entity (first clause)
-       :attr (second clause)
-       :value '_})
-    {}))
 
 
 (defn parse
@@ -109,23 +92,6 @@
 (defn pattern
   [x]
   (if (variable? x) ? :v))
-
-
-#_(defn- normalize-db
-  "Takes a db like {:foo/id {\"123\" {:foo/id \"123\"}}} and transforms it into
-
-  {[:foo/id \"123\"] {:foo/id \"123}}"
-  [db]
-  (into
-   {}
-   (comp
-    (filter (comp map? val))
-    (mapcat
-     (fn [[k id->v]]
-       (map
-        #(vector [k (key %)] (val %))
-        id->v))))
-   db))
 
 
 (defn- idents
@@ -291,29 +257,103 @@
  )
 
 
+(defn- join-type
+  [m1 m2]
+  (let [ks1 (set (keys m1))
+        ks2 (set (keys m2))
+        common (set/intersection ks1 ks2)]
+    (cond
+      (and (seq common) (= (select-keys m1 common) (select-keys m2 common)))
+      :join
+
+      (seq common)
+      :mismatch
+
+      :else :disjoint)))
+
+
+(comment
+  (join-type
+   {:foo "bar" :baz 123}
+   {:foo "bar" :asdf 456})
+
+  (join-type
+   {:foo "bar" :baz 123}
+   {:foo "asdf"})
+
+  (join-type
+   {:foo "bar" :baz 123}
+   {:asdf "jkl"})
+  )
+
+(defn- join-results
+  [res1 res2]
+  #_(->> (for [r1 res1
+               r2 res2
+               :let [no-join? (every? #(not (contains? r1 (key %))) r2)
+                     matches? (some #(= (val %) (get r1 (key %))) r2)]
+               :when (or no-join? matches?)]
+           (if no-join?
+             r1
+             (merge r1 r2)))
+         set)
+  (let [left->join-types+r2 (->> (for [r1 res1]
+                                   [r1 (for [r2 res2
+                                             :let [jt (join-type r1 r2)]]
+                                         [jt r2])])
+                                 (into {}))]
+    (->> (for [[r1 join-types+r2] left->join-types+r2
+               :when (every? #(not= :mismatch (first %)) join-types+r2)
+               [_ r2] join-types+r2]
+           [r1 r2])
+         (apply concat)
+         (set))))
+
+
+(comment
+  ;; matches
+  (join-results
+   '[{?e [:foo/id "123"], ?id "123"}
+     {?e [:foo/id "456"], ?id "456"}
+     {?asdf "jkl"}]
+   '[{?e [:foo/id "123"] ?foo "123"}])
+
+  (join-results
+   '[{?e [:foo/id "123"], ?id "123"}
+     {?e [:foo/id "456"], ?id "456"}
+     {?asdf "jkl"}]
+   '[{?e [:foo/id "123"] ?foo "bar"}
+     {?e [:foo/id "456"] ?foo "baz"}])
+
+  (join-results
+   '[{?e [:foo/id "123"], ?id "123"}
+     {?e [:foo/id "456"], ?id "456"}
+     {?asdf "jkl"}]
+   '[{?foo "bar"}
+     {?foo "baz"}])
+
+  ;; no matches
+  (join-results
+   '[{?e [:foo/id "123"], ?id "123"}
+     {?e [:foo/id "456"], ?id "456"}
+     {?asdf "jkl"}]
+   '[{?e [:foo/id "123"] ?id "456"}])
+  )
+
+
 
 (defn execute
   [{:keys [find in where]}]
   (let [db (get in $)
         idents (idents db)]
     (loop [clauses where
-           resolved '()]
-      (if-let [clause (first clauses)]
+           results [in]]
+      (if-let [_clause (first clauses)]
         (recur
          (rest clauses)
-         (let [clause' (mapv
-                        ;; resolve any variables that are contained in `in`
-                        (fn [v]
-                          (if (and (variable? v)
-                                   (contains? in v))
-                            (get in v)
-                            v))
-                        clause)]
-           (conj
-            resolved
-            {:clause clause
-             :result (resolve-triple db clause')})))
-        resolved))))
+         (for [res results]
+           []))
+        results))))
 
 
 #_(execute
