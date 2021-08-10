@@ -123,9 +123,7 @@
 (defn- resolve-triple
   [db triple]
   (let [[e a v] triple
-        idents (idents db)
-        result-pattern (:pattern (meta triple) triple)
-        result-meta {:pattern result-pattern}]
+        idents (idents db)]
     ;; TODO handle multi cardinality values
     (case (map #(pattern %) triple)
       [:v :v :v]
@@ -136,9 +134,7 @@
       [? :v :v]
       (into
        []
-       (comp
-        (filter #(= v (get-in db (conj % a))))
-        (map #(with-meta [% a v] result-meta)))
+       (filter #(= v (get-in db (conj % a))))
        idents)
 
       [:v ? :v]
@@ -146,14 +142,12 @@
        []
        (comp
         (filter #(= v (val %)))
-        (map key)
-        (map #(with-meta [e % v] result-meta)))
+        (map key))
        (get-in db e))
 
       [:v :v ?]
       (if (contains-in? db (conj e a))
-        [(with-meta [e a (get-in db (conj e a))]
-           result-meta)]
+        [[(get-in db (conj e a))]]
         [])
 
       [? ? :v]
@@ -162,8 +156,7 @@
          (->> (get-in db ident)
               (filter #(= v (val %)))
               (map (fn [entry]
-                     (with-meta [ident (key entry) v]
-                       result-meta)))))
+                     [ident (key entry)]))))
        idents)
 
       [? :v ?]
@@ -172,23 +165,20 @@
        (comp
         (filter #(contains-in? db (conj % a)))
         (map (fn [ident]
-               (with-meta [ident a (get-in db (conj ident a))]
-                 result-meta))))
+               [ident (get-in db (conj ident a))])))
        idents)
 
       [:v ? ?]
       (mapv
        (fn [entry]
-         (with-meta [e (key entry) (val entry)]
-           result-meta))
+         [(key entry) (val entry)])
        (get-in db e))
 
       [? ? ?]
       (for [ident idents
             :let [entity (get-in db ident)]
             entry entity]
-        (with-meta [ident (key entry) (val entry)]
-          result-meta)))))
+        [ident (key entry) (val entry)]))))
 
 
 (comment
@@ -201,11 +191,6 @@
 
  ;; [:v :v :v] found
  (resolve-triple db [[:foo/id "123"] :foo/bar "baz"])
-
- (map meta
-      (resolve-triple db (with-meta
-                       [[:foo/id "123"] :foo/bar "baz"]
-                       {:pattern '[?e :foo/bar ?bar]})))
 
  ;; [:v :v :v] not-found
  (resolve-triple db ['[:foo/id "456"] :foo/bar "bar"])
@@ -278,10 +263,10 @@
 
 
 
-(defn- rewrite-triple
-  [results [e a v :as triple]]
-  (-> (for [result results
-            :let [pattern (:pattern (meta result))
+(defn- rewrite-and-resolve-triple
+  [db results [e a v :as triple]]
+  (-> (for [left results
+            :let [pattern (:pattern (meta left))
                   ;; get mapping of var to result index
                   var->idx (into
                             {}
@@ -289,41 +274,64 @@
                              (map-indexed #(vector %2 %1))
                              (filter #(variable? (first %))))
                             pattern)
-                  [e' a' v'] (map var->idx triple)]
-            :when (or e' a' v')]
+                  [ei ai vi] (map var->idx triple)]
+            :when (or ei ai vi)
+            :let [triple' [(or (get left ei) e)
+                           (or (get left ai) a)
+                           (or (get left vi) v)]
+                  pattern' (->> triple'
+                                (remove (complement variable?))
+                                (remove (set pattern))
+                                (concat pattern))]
+            right (resolve-triple db triple')]
         (with-meta
-          [(or (get result e') e)
-           (or (get result a') a)
-           (or (get result v') v)]
-          {:pattern triple}))
+          (concat left right)
+          {:pattern pattern'}))
       (seq)
       ;; if we didn't find any matches at all, return the original triple
-      (or [triple])))
+      (or [(with-meta (resolve-triple db triple)
+             {:pattern (filter variable? triple)})])))
 
 
 (comment
-  (rewrite-triple
-   [(with-meta [[:foo/id 1] :foo/id 1]
-      {:pattern '[?e :foo/id ?id]})
-    (with-meta [[:foo/id 2] :foo/id 2]
-      {:pattern '[?e :foo/id ?id]})]
+  (rewrite-and-resolve-triple
+   {:foo/id {1 {:foo/id 1
+                :foo/name "bar"}
+             2 {:foo/id 2
+                :foo/name "baz"}}}
+   [(with-meta [[:foo/id 1] 1]
+      {:pattern '[?e ?id]})
+    (with-meta [[:foo/id 2] 2]
+      {:pattern '[?e ?id]})]
    '[?e :foo/name ?name])
 
 
-  (rewrite-triple
-   [(with-meta [[:foo/id 1] :foo/id 1]
-      {:pattern '[?e :foo/id ?id]})
-    (with-meta [[:foo/id 2] :foo/id 2]
-      {:pattern '[?e :foo/id ?id]})]
-   '[?foo :foo/name ?name])
-
-
-
-  (map meta
-   (rewrite-triple
-    [(with-meta [[:foo/id 1] :foo/id 1]
-       {:pattern '[?e :foo/id ?id]})]
+   (map meta
+   (rewrite-and-resolve-triple
+    {:foo/id {1 {:foo/id 1
+                 :foo/name "bar"}
+              2 {:foo/id 2
+                 :foo/name "baz"}}}
+    [(with-meta [[:foo/id 1] 1]
+       {:pattern '[?e ?id]})]
     '[?e :foo/name ?name]))
+
+
+   (rewrite-and-resolve-triple
+    {:foo/id {"123" #:foo{:id "123", :bar "baz"}, "456" #:foo{:id "456", :bar "asdf"}, "789" #:foo{:id "456"}}, :foo {:bar "baz"}, :asdf "jkl"}
+    '(nil)
+    '[?e :foo/id ?id])
+
+
+   (rewrite-and-resolve-triple
+    {:foo/id {"123" #:foo{:id "123", :bar "baz"}, "456" #:foo{:id "456", :bar "asdf"}, "789" #:foo{:id "456"}}, :foo {:bar "baz"}, :asdf "jkl"}
+    [[(with-meta [[:foo/id "123"] "123"]
+        '{:pattern (?e ?id)})
+      (with-meta [[:foo/id "456"] "456"]
+        '{:pattern (?e ?id)})
+      (with-meta [[:foo/id "789"] "456"]
+        '{:pattern (?e ?id)})]]
+    '[?e :foo/bar ?bar])
   )
 
 
@@ -348,15 +356,13 @@
   [{:keys [find in where]}]
   (let [db (first (get in $))]
     (loop [clauses where
-           results []]
+           results [[]]]
+      (prn results (map meta results) db clauses)
       (if-let [clause (doto (first clauses) (prn "--- "))]
         (recur
          (rest clauses)
-         (for [clause' (rewrite-triple results clause)
-               :let [results (resolve-triple db clause')]
-               result results]
-           result))
-        (project-results results find)))))
+         (rewrite-and-resolve-triple db results clause))
+        results))))
 
 
 (comment
@@ -374,7 +380,7 @@
         :foo {:bar "baz"}
         :asdf "jkl"})
       (execute)
-      #_(->> (map meta)))
+      (->> (map meta)))
 
   (-> (parse
        '[:find ?e ?id
@@ -388,7 +394,8 @@
                         :foo/bar "asdf"}}
         :foo {:bar "baz"}
         :asdf "jkl"})
-      (execute))
+      (execute)
+      #_(map meta))
 
   (-> (parse
        '[:find ?e ?id
