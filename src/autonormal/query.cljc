@@ -277,9 +277,9 @@
                             pattern)
                   [ei ai vi] (map var->idx triple)]
             :when (or ei ai vi)
-            :let [triple' [(or (get left ei) e)
-                           (or (get left ai) a)
-                           (or (get left vi) v)]
+            :let [triple' [(if ei (nth left ei) e)
+                           (if ai (nth left ai) a)
+                           (if vi (get left vi) v)]
                   pattern' (->> triple'
                                 (remove (complement variable?))
                                 (remove (set pattern))
@@ -363,19 +363,19 @@
   [{:keys [find in where]}]
   (let [db (first (get in $))]
     (loop [clauses where
-           results [[]]]
-      (prn results)
-      (if-let [clause (doto (first clauses) (prn "--- "))]
+           results []]
+      (if-let [clause (first clauses)]
         (recur
          (rest clauses)
          (rewrite-and-resolve-triple db results clause))
-        results))))
+        (project-results results find)
+        #_results))))
 
 
 (comment
   ;; found
   (-> (parse
-       '[:find ?e ?id
+       '[:find ?id ?bar
          :where
          [?e :foo/id ?id]
          [?e :foo/bar ?bar]]
@@ -390,7 +390,7 @@
       #_(->> (map meta)))
 
   (-> (parse
-       '[:find ?e ?id
+       '[:find ?id
          :in $
          :where
          [?e :foo/id ?id]
@@ -402,22 +402,24 @@
         :foo {:bar "baz"}
         :asdf "jkl"})
       (execute)
-      #_(map meta))
+      #_(->> (map meta)))
 
   (-> (parse
-       '[:find ?e ?id
-         :in $ ?bar
+       '[:find ?e0 ?friend ?bar
+         :in $
          :where
-         [?e :foo/id ?id]
-         [?e :foo/bar ?bar]]
+         [?e0 :foo/id ?id]
+         [?e0 :foo/friend ?friend]
+         [?friend :foo/bar ?bar]]
        {:foo/id {"123" {:foo/id "123"
-                        :foo/bar "baz"}
+                        :foo/friend [:foo/id "456"]
+                        :foo/bar "asdf"}
                  "456" {:foo/id "456"
-                        :foo/bar "asdf"}}
+                        :foo/bar "baz"}}
         :foo {:bar "baz"}
-        :asdf "jkl"}
-       "baz")
-      (execute))
+        :asdf "jkl"})
+      (execute)
+      #_(->> (map meta)))
 
   ;; not-found
   (execute
