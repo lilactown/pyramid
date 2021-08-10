@@ -31,7 +31,14 @@
                            "No :where clauses given"}))]
     {:find variables
      :in (-> inputs
-             (zipmap (cons db params)))
+             (zipmap (cons db params))
+             ;; ensure inputs are always sequential collections
+             (->> (reduce-kv
+                   (fn [m k v]
+                     (if (sequential? v)
+                       (assoc m k v)
+                       (assoc m k [v])))
+                   {})))
      :where clauses
      :anomalies anomalies}))
 
@@ -116,10 +123,14 @@
 (defn- resolve-triple
   [db triple]
   (let [[e a v] triple
-        idents (idents db)]
+        idents (idents db)
+        result-pattern (:pattern (meta triple) triple)
+        result-meta {:pattern result-pattern}]
+    ;; TODO handle multi cardinality values
     (case (map #(pattern %) triple)
       [:v :v :v]
-      (when (= v (get-in db (conj e a)))
+      (if (= v (get-in db (conj e a)))
+        [[]]
         [])
 
       [? :v :v]
@@ -127,7 +138,7 @@
        []
        (comp
         (filter #(= v (get-in db (conj % a))))
-        (map (fn [ident] {e ident})))
+        (map #(with-meta [% a v] result-meta)))
        idents)
 
       [:v ? :v]
@@ -136,12 +147,13 @@
        (comp
         (filter #(= v (val %)))
         (map key)
-        (map (fn [k] {a k})))
+        (map #(with-meta [e % v] result-meta)))
        (get-in db e))
 
       [:v :v ?]
       (if (contains-in? db (conj e a))
-        [{v (get-in db (conj e a))}]
+        [(with-meta [e a (get-in db (conj e a))]
+           result-meta)]
         [])
 
       [? ? :v]
@@ -149,9 +161,9 @@
        (fn [ident]
          (->> (get-in db ident)
               (filter #(= v (val %)))
-              (map (fn [m]
-                     {e ident
-                      a (key m)}))))
+              (map (fn [entry]
+                     (with-meta [ident (key entry) v]
+                       result-meta)))))
        idents)
 
       [? :v ?]
@@ -160,23 +172,23 @@
        (comp
         (filter #(contains-in? db (conj % a)))
         (map (fn [ident]
-               {e ident
-                v (get-in db (conj ident a))})))
+               (with-meta [ident a (get-in db (conj ident a))]
+                 result-meta))))
        idents)
 
       [:v ? ?]
       (mapv
        (fn [entry]
-         {a (key entry) v (val entry)})
+         (with-meta [e (key entry) (val entry)]
+           result-meta))
        (get-in db e))
 
       [? ? ?]
       (for [ident idents
             :let [entity (get-in db ident)]
             entry entity]
-        {e ident
-         a (key entry)
-         v (val entry)}))))
+        (with-meta [ident (key entry) (val entry)]
+          result-meta)))))
 
 
 (comment
@@ -188,7 +200,12 @@
           :asdf "jkl"})
 
  ;; [:v :v :v] found
- (resolve-triple db ['[:foo/id "123"] :foo/bar "baz"])
+ (resolve-triple db [[:foo/id "123"] :foo/bar "baz"])
+
+ (map meta
+      (resolve-triple db (with-meta
+                       [[:foo/id "123"] :foo/bar "baz"]
+                       {:pattern '[?e :foo/bar ?bar]})))
 
  ;; [:v :v :v] not-found
  (resolve-triple db ['[:foo/id "456"] :foo/bar "bar"])
@@ -202,6 +219,9 @@
 
  ;; [? :v :v] found
  (resolve-triple db '[?e :foo/bar "baz"])
+
+ (resolve-triple db (with-meta '[?e :foo/bar "baz"]
+                      {:original '[?e :foo/bar ?bar]}))
 
  ;; [? :v :v] not-found
  (resolve-triple db '[?e :foo/bar "bat"])
@@ -257,116 +277,148 @@
  )
 
 
-(defn- join-type
-  [m1 m2]
-  (let [ks1 (set (keys m1))
-        ks2 (set (keys m2))
-        common (set/intersection ks1 ks2)]
-    (cond
-      (and (seq common) (= (select-keys m1 common) (select-keys m2 common)))
-      :join
 
-      (seq common)
-      :mismatch
-
-      :else :disjoint)))
-
-
-(comment
-  (join-type
-   {:foo "bar" :baz 123}
-   {:foo "bar" :asdf 456})
-
-  (join-type
-   {:foo "bar" :baz 123}
-   {:foo "asdf"})
-
-  (join-type
-   {:foo "bar" :baz 123}
-   {:asdf "jkl"})
-  )
-
-(defn- join-results
-  [res1 res2]
-  #_(->> (for [r1 res1
-               r2 res2
-               :let [no-join? (every? #(not (contains? r1 (key %))) r2)
-                     matches? (some #(= (val %) (get r1 (key %))) r2)]
-               :when (or no-join? matches?)]
-           (if no-join?
-             r1
-             (merge r1 r2)))
-         set)
-  (let [left->join-types+r2 (->> (for [r1 res1]
-                                   [r1 (for [r2 res2
-                                             :let [jt (join-type r1 r2)]]
-                                         [jt r2])])
-                                 (into {}))]
-    (->> (for [[r1 join-types+r2] left->join-types+r2
-               :when (every? #(not= :mismatch (first %)) join-types+r2)
-               [_ r2] join-types+r2]
-           [r1 r2])
-         (apply concat)
-         (set))))
+(defn- rewrite-triple
+  [results [e a v :as triple]]
+  (-> (for [result results
+            :let [pattern (:pattern (meta result))
+                  ;; get mapping of var to result index
+                  var->idx (into
+                            {}
+                            (comp
+                             (map-indexed #(vector %2 %1))
+                             (filter #(variable? (first %))))
+                            pattern)
+                  [e' a' v'] (map var->idx triple)]
+            :when (or e' a' v')]
+        (with-meta
+          [(or (get result e') e)
+           (or (get result a') a)
+           (or (get result v') v)]
+          {:pattern triple}))
+      (seq)
+      ;; if we didn't find any matches at all, return the original triple
+      (or [triple])))
 
 
 (comment
-  ;; matches
-  (join-results
-   '[{?e [:foo/id "123"], ?id "123"}
-     {?e [:foo/id "456"], ?id "456"}
-     {?asdf "jkl"}]
-   '[{?e [:foo/id "123"] ?foo "123"}])
+  (rewrite-triple
+   [(with-meta [[:foo/id 1] :foo/id 1]
+      {:pattern '[?e :foo/id ?id]})
+    (with-meta [[:foo/id 2] :foo/id 2]
+      {:pattern '[?e :foo/id ?id]})]
+   '[?e :foo/name ?name])
 
-  (join-results
-   '[{?e [:foo/id "123"], ?id "123"}
-     {?e [:foo/id "456"], ?id "456"}
-     {?asdf "jkl"}]
-   '[{?e [:foo/id "123"] ?foo "bar"}
-     {?e [:foo/id "456"] ?foo "baz"}])
 
-  (join-results
-   '[{?e [:foo/id "123"], ?id "123"}
-     {?e [:foo/id "456"], ?id "456"}
-     {?asdf "jkl"}]
-   '[{?foo "bar"}
-     {?foo "baz"}])
+  (rewrite-triple
+   [(with-meta [[:foo/id 1] :foo/id 1]
+      {:pattern '[?e :foo/id ?id]})
+    (with-meta [[:foo/id 2] :foo/id 2]
+      {:pattern '[?e :foo/id ?id]})]
+   '[?foo :foo/name ?name])
 
-  ;; no matches
-  (join-results
-   '[{?e [:foo/id "123"], ?id "123"}
-     {?e [:foo/id "456"], ?id "456"}
-     {?asdf "jkl"}]
-   '[{?e [:foo/id "123"] ?id "456"}])
+
+
+  (map meta
+   (rewrite-triple
+    [(with-meta [[:foo/id 1] :foo/id 1]
+       {:pattern '[?e :foo/id ?id]})]
+    '[?e :foo/name ?name]))
   )
+
+
+(defn- project-results
+  [results bindings]
+  (for [result results
+        :let [pattern (:pattern (meta result))
+              var->idx (into
+                        {}
+                        (comp
+                         (map-indexed #(vector %2 %1))
+                         (filter #(variable? (first %))))
+                        pattern)
+              indices (->> bindings
+                           (map var->idx))]
+        :when (some some? indices)]
+    (map #(when (some? %) (nth result %)) indices)))
 
 
 
 (defn execute
   [{:keys [find in where]}]
-  (let [db (get in $)
-        idents (idents db)]
+  (let [db (first (get in $))]
     (loop [clauses where
-           results [in]]
-      (if-let [_clause (first clauses)]
+           results []]
+      (if-let [clause (doto (first clauses) (prn "--- "))]
         (recur
          (rest clauses)
-         (for [res results]
-           []))
-        results))))
+         (for [clause' (rewrite-triple results clause)
+               :let [results (resolve-triple db clause')]
+               result results]
+           result))
+        (project-results results find)))))
 
 
-#_(execute
- '{:find [?e ?id]
-   :in {$ {:foo/id {"123" {:foo/id "123"
-                           :foo/bar "baz"}
-                    "456" {:foo/id "456"
-                           :foo/bar "asdf"}}
-           :foo {:bar "baz"}
-           :asdf "jkl"}
-        ?bar "baz"}
-   :where
-   ([?e :foo/id ?id]
-    [?e :foo/bar ?bar])})
+(comment
+  ;; found
+  (-> (parse
+       '[:find ?e ?id
+         :where
+         [?e :foo/id ?id]
+         [?e :foo/bar ?bar]]
+       {:foo/id {"123" {:foo/id "123"
+                        :foo/bar "baz"}
+                 "456" {:foo/id "456"
+                        :foo/bar "asdf"}
+                 "789" {:foo/id "456"}}
+        :foo {:bar "baz"}
+        :asdf "jkl"})
+      (execute)
+      #_(->> (map meta)))
+
+  (-> (parse
+       '[:find ?e ?id
+         :in $
+         :where
+         [?e :foo/id ?id]
+         [?e :foo/bar "baz"]]
+       {:foo/id {"123" {:foo/id "123"
+                        :foo/bar "baz"}
+                 "456" {:foo/id "456"
+                        :foo/bar "asdf"}}
+        :foo {:bar "baz"}
+        :asdf "jkl"})
+      (execute))
+
+  (-> (parse
+       '[:find ?e ?id
+         :in $ ?bar
+         :where
+         [?e :foo/id ?id]
+         [?e :foo/bar ?bar]]
+       {:foo/id {"123" {:foo/id "123"
+                        :foo/bar "baz"}
+                 "456" {:foo/id "456"
+                        :foo/bar "asdf"}}
+        :foo {:bar "baz"}
+        :asdf "jkl"}
+       "baz")
+      (execute))
+
+  ;; not-found
+  (execute
+   '{:find [?e ?id]
+     :in {$ {:foo/id {"123" {:foo/id "123"
+                             :foo/bar "baz"}
+                      "456" {:foo/id "456"
+                             :foo/bar "asdf"}}
+             :foo {:bar "baz"}
+             :asdf "jkl"}
+          ?bar ["bat"]}
+     :where
+     ([?e :foo/id ?id]
+      [?e :foo/bar ?bar])})
+
+  )
 
 
