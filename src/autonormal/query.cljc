@@ -265,6 +265,7 @@
 
 (defn- rewrite-and-resolve-triple
   [db results [e a v :as triple]]
+  ;; TODO for some reason this is nesting too many collections
   (-> (for [left results
             :let [pattern (:pattern (meta left))
                   ;; get mapping of var to result index
@@ -289,8 +290,9 @@
           {:pattern pattern'}))
       (seq)
       ;; if we didn't find any matches at all, return the original triple
-      (or [(with-meta (resolve-triple db triple)
-             {:pattern (filter variable? triple)})])))
+      (or (map
+           #(with-meta % {:pattern (filter variable? triple)})
+           (resolve-triple db triple)))))
 
 
 (comment
@@ -318,19 +320,24 @@
 
 
    (rewrite-and-resolve-triple
-    {:foo/id {"123" #:foo{:id "123", :bar "baz"}, "456" #:foo{:id "456", :bar "asdf"}, "789" #:foo{:id "456"}}, :foo {:bar "baz"}, :asdf "jkl"}
-    '(nil)
+    {:foo/id {"123" #:foo{:id "123", :bar "baz"}
+              "456" #:foo{:id "456", :bar "asdf"}
+              "789" #:foo{:id "456"}}
+     :foo {:bar "baz"}, :asdf "jkl"}
+    nil
     '[?e :foo/id ?id])
 
 
    (rewrite-and-resolve-triple
-    {:foo/id {"123" #:foo{:id "123", :bar "baz"}, "456" #:foo{:id "456", :bar "asdf"}, "789" #:foo{:id "456"}}, :foo {:bar "baz"}, :asdf "jkl"}
-    [[(with-meta [[:foo/id "123"] "123"]
-        '{:pattern (?e ?id)})
-      (with-meta [[:foo/id "456"] "456"]
-        '{:pattern (?e ?id)})
-      (with-meta [[:foo/id "789"] "456"]
-        '{:pattern (?e ?id)})]]
+    {:foo/id {"123" #:foo{:id "123", :bar "baz"}
+              "456" #:foo{:id "456", :bar "asdf"}
+              "789" #:foo{:id "456"}}, :foo {:bar "baz"}, :asdf "jkl"}
+    [(with-meta [[:foo/id "123"] "123"]
+       '{:pattern (?e ?id)})
+     (with-meta [[:foo/id "456"] "456"]
+       '{:pattern (?e ?id)})
+     (with-meta [[:foo/id "789"] "456"]
+       '{:pattern (?e ?id)})]
     '[?e :foo/bar ?bar])
   )
 
@@ -357,7 +364,7 @@
   (let [db (first (get in $))]
     (loop [clauses where
            results [[]]]
-      (prn results (map meta results) db clauses)
+      (prn results)
       (if-let [clause (doto (first clauses) (prn "--- "))]
         (recur
          (rest clauses)
@@ -380,7 +387,7 @@
         :foo {:bar "baz"}
         :asdf "jkl"})
       (execute)
-      (->> (map meta)))
+      #_(->> (map meta)))
 
   (-> (parse
        '[:find ?e ?id
