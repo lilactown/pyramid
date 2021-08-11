@@ -124,7 +124,7 @@
   (let [[e a v] triple
         idents (idents db)]
     ;; TODO handle multi cardinality values
-    (case (map #(pattern %) triple)
+    (case (map pattern triple)
       [:v :v :v]
       (if (= v (get-in db (conj e a)))
         [[]]
@@ -133,7 +133,9 @@
       [? :v :v]
       (into
        []
-       (filter #(= v (get-in db (conj % a))))
+       (comp
+        (filter #(= v (get-in db (conj % a))))
+        (map vector))
        idents)
 
       [:v ? :v]
@@ -146,7 +148,9 @@
 
       [:v :v ?]
       (if (contains-in? db (conj e a))
-        [[(get-in db (conj e a))]]
+        (if (:many (meta v))
+          (map vector (get-in db (conj e a)))
+          [[(get-in db (conj e a))]])
         [])
 
       [? ? :v]
@@ -163,21 +167,42 @@
        []
        (comp
         (filter #(contains-in? db (conj % a)))
-        (map (fn [ident]
-               [ident (get-in db (conj ident a))])))
+        (if (:many (meta v))
+          (mapcat
+           (fn [ident]
+             (map
+              (fn [value] [ident value])
+              (get-in db (conj ident a)))))
+          (map
+           (fn [ident]
+             [ident (get-in db (conj ident a))]))))
        idents)
 
       [:v ? ?]
-      (mapv
-       (fn [entry]
-         [(key entry) (val entry)])
-       (get-in db e))
+      (if (:many (meta v))
+        (into
+         []
+         (mapcat
+          (fn [entry]
+            (let [k (key entry)]
+              (map #(vector k %) (val entry))))
+          (get-in db e)))
+        (mapv
+         (fn [entry]
+           [(key entry) (val entry)])
+         (get-in db e)))
 
       [? ? ?]
-      (for [ident idents
-            :let [entity (get-in db ident)]
-            entry entity]
-        [ident (key entry) (val entry)]))))
+      (if (:many (meta v))
+        (for [ident idents
+              :let [entity (get-in db ident)]
+              entry entity
+              values (val entry)]
+          [ident (key entry) values])
+        (for [ident idents
+              :let [entity (get-in db ident)]
+              entry entity]
+          [ident (key entry) (val entry)])))))
 
 
 (comment

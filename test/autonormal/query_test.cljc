@@ -21,6 +21,7 @@
          :person {:bar "baz"}
          :asdf "jkl"})
 
+
 (t/deftest joins
   (t/is (= '(("123")
              ("456")
@@ -74,13 +75,16 @@
               "foo"))
         "join on :in")
 
-  (t/is (= '(("foo" ("bar" "baz"))
-             ("bar" ("foo" "baz"))
-             ("baz" ("foo" "bar")))
+  (t/is (= '(("foo" "bar")
+             ("foo" "baz")
+             ("bar" "foo")
+             ("bar" "baz")
+             ("baz" "foo")
+             ("baz" "bar"))
            (q '[:find ?name ?friend-name
                 :where
                 [?e :person/name ?name]
-                [?e :person/friends ?friend]
+                [?e :person/friends ^:many ?friend]
                 [?friend :person/name ?friend-name]]
               db))
         "multiple cardinality value")
