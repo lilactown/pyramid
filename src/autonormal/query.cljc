@@ -1,6 +1,5 @@
 (ns autonormal.query
   (:require
-   [clojure.set :as set]
    [clojure.string :as string]))
 
 
@@ -438,3 +437,7 @@
   )
 
 
+(defn q
+  [query db & params]
+  (-> (apply parse query db params)
+      (execute)))
