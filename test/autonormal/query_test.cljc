@@ -84,6 +84,16 @@
               db))
         "multiple cardinality value")
 
+  (t/is (= '(["123" "foo"])
+           (q '[:find ?id ?name
+                :in $ ^:many ?name
+                :where
+                [?e :person/name ?name]
+                [?e :person/id ?id]]
+              db
+              ["foo" "bar"]))
+        "multi cardinality join on :in")
+
   (t/is (= '(("foo" "foo")
              ("foo" "bar")
              ("foo" "baz")
