@@ -56,6 +56,24 @@
                 [?friend :person/name ?friend-name]]
               db)))
 
+  (t/is (= '()
+           (q '[:find ?id
+                :where
+                [?e :person/name "asdf"]
+                [?e :person/id ?id]]
+              db))
+        "not found")
+
+  (t/is (= '(("123" "foo"))
+           (q '[:find ?id ?name
+                :in $ ?name
+                :where
+                [?e :person/name ?name]
+                [?e :person/id ?id]]
+              db
+              "foo"))
+        "join on :in")
+
   (t/is (= '(("foo" ("bar" "baz"))
              ("bar" ("foo" "baz"))
              ("baz" ("foo" "bar")))

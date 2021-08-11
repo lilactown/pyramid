@@ -265,33 +265,27 @@
 (defn- rewrite-and-resolve-triple
   [db results [e a v :as triple]]
   ;; TODO for some reason this is nesting too many collections
-  (-> (for [left results
-            :let [pattern (:pattern (meta left))
-                  ;; get mapping of var to result index
-                  var->idx (into
-                            {}
-                            (comp
-                             (map-indexed #(vector %2 %1))
-                             (filter #(variable? (first %))))
-                            pattern)
-                  [ei ai vi] (map var->idx triple)]
-            :when (or ei ai vi)
-            :let [triple' [(if ei (nth left ei) e)
-                           (if ai (nth left ai) a)
-                           (if vi (get left vi) v)]
-                  pattern' (->> triple'
-                                (remove (complement variable?))
-                                (remove (set pattern))
-                                (concat pattern))]
-            right (resolve-triple db triple')]
-        (with-meta
-          (concat left right)
-          {:pattern pattern'}))
-      (seq)
-      ;; if we didn't find any matches at all, return the original triple
-      (or (map
-           #(with-meta % {:pattern (filter variable? triple)})
-           (resolve-triple db triple)))))
+  (for [left results
+        :let [pattern (:pattern (meta left))
+              ;; get mapping of var to result index
+              var->idx (into
+                        {}
+                        (comp
+                         (map-indexed #(vector %2 %1))
+                         (filter #(variable? (first %))))
+                        pattern)
+              [ei ai vi] (map var->idx triple)]
+        :let [triple' [(if ei (nth left ei) e)
+                       (if ai (nth left ai) a)
+                       (if vi (get left vi) v)]
+              pattern' (->> triple'
+                            (remove (complement variable?))
+                            (remove (set pattern))
+                            (concat pattern))]
+        right (resolve-triple db triple')]
+    (with-meta
+      (concat left right)
+      {:pattern pattern'})))
 
 
 (comment
@@ -362,7 +356,7 @@
   [{:keys [find in where]}]
   (let [db (first (get in $))]
     (loop [clauses where
-           results []]
+           results [[]]]
       (if-let [clause (first clauses)]
         (recur
          (rest clauses)
@@ -423,12 +417,12 @@
   ;; not-found
   (execute
    '{:find [?e ?id]
-     :in {$ {:foo/id {"123" {:foo/id "123"
+     :in {$ [{:foo/id {"123" {:foo/id "123"
                              :foo/bar "baz"}
                       "456" {:foo/id "456"
                              :foo/bar "asdf"}}
              :foo {:bar "baz"}
-             :asdf "jkl"}
+             :asdf "jkl"} ]
           ?bar ["bat"]}
      :where
      ([?e :foo/id ?id]
