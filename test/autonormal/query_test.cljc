@@ -23,25 +23,20 @@
 
 
 (t/deftest joins
-  (t/is (= '(("123")
-             ("456")
-             ("789")
-             ("1011"))
+  (t/is (= '(["123"] ["456"] ["789"] ["1011"])
            (q '[:find ?id
                 :where
                 [?e :person/id ?id]]
               db)))
 
-  (t/is (= '(("123" "foo")
-             ("456" "bar")
-             ("789" "baz"))
+  (t/is (= '(["123" "foo"] ["456" "bar"] ["789" "baz"])
            (q '[:find ?id ?name
                 :where
                 [?e :person/id ?id]
                 [?e :person/name ?name]]
               db)))
 
-  (t/is (= '(("123" "foo" [:person/id "789"]))
+  (t/is (= '(["123" "foo" [:person/id "789"]])
            (q '[:find ?id ?name ?friend
                 :where
                 [?e :person/id ?id]
@@ -49,7 +44,7 @@
                 [?e :person/best-friend ?friend]]
               db)))
 
-  (t/is (= '(("foo" "baz"))
+  (t/is (= '(["foo" "baz"])
            (q '[:find ?name ?friend-name
                 :where
                 [?e :person/name ?name]
@@ -65,7 +60,7 @@
               db))
         "not found")
 
-  (t/is (= '(("123" "foo"))
+  (t/is (= '(["123" "foo"])
            (q '[:find ?id ?name
                 :in $ ?name
                 :where
@@ -75,12 +70,12 @@
               "foo"))
         "join on :in")
 
-  (t/is (= '(("foo" "bar")
-             ("foo" "baz")
-             ("bar" "foo")
-             ("bar" "baz")
-             ("baz" "foo")
-             ("baz" "bar"))
+  (t/is (= '(["foo" "bar"]
+             ["foo" "baz"]
+             ["bar" "foo"]
+             ["bar" "baz"]
+             ["baz" "foo"]
+             ["baz" "bar"])
            (q '[:find ?name ?friend-name
                 :where
                 [?e :person/name ?name]

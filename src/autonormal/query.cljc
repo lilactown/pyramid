@@ -29,15 +29,7 @@
                     (conj {:query/anomaly
                            "No :where clauses given"}))]
     {:find variables
-     :in (-> inputs
-             (zipmap (cons db params))
-             ;; ensure inputs are always sequential collections
-             (->> (reduce-kv
-                   (fn [m k v]
-                     (if (sequential? v)
-                       (assoc m k v)
-                       (assoc m k [v])))
-                   {})))
+     :in (zipmap inputs (cons db params))
      :where clauses
      :anomalies anomalies}))
 
@@ -123,6 +115,7 @@
   [db triple]
   (let [[e a v] triple
         idents (idents db)]
+    #_(prn triple (map pattern triple))
     ;; TODO handle multi cardinality values
     (case (map pattern triple)
       [:v :v :v]
@@ -134,7 +127,7 @@
       (into
        []
        (comp
-        (filter #(= v (get-in db (conj % a))))
+        (filter #(= v (get-in db (conj % a) ::not-found)))
         (map vector))
        idents)
 
@@ -306,7 +299,8 @@
               pattern' (->> triple'
                             (remove (complement variable?))
                             (remove (set pattern))
-                            (concat pattern))]
+                            (concat pattern)
+                            (vec))]
         right (resolve-triple db triple')]
     (with-meta
       (concat left right)
@@ -373,21 +367,26 @@
               indices (->> bindings
                            (map var->idx))]
         :when (some some? indices)]
-    (map #(when (some? %) (nth result %)) indices)))
-
+    (mapv #(when (some? %) (nth result %)) indices)))
 
 
 (defn execute
   [{:keys [find in where]}]
-  (let [db (first (get in $))]
+  (let [db (get in $)]
     (loop [clauses where
-           results [[]]]
+           results [(with-meta
+                      (vec (vals in))
+                      {:pattern (vec (keys in))})]]
+;;      (prn (first results))
+ ;;     (prn (meta (first results)))
       (if-let [clause (first clauses)]
         (recur
          (rest clauses)
          (rewrite-and-resolve-triple db results clause))
-        (project-results results find)
-        #_results))))
+        (do
+   ;;       (prn (first results))
+  ;;        (prn (meta (first results)))
+          (project-results results find))))))
 
 
 (comment
@@ -424,7 +423,6 @@
 
   (-> (parse
        '[:find ?e0 ?friend ?bar
-         :in $
          :where
          [?e0 :foo/id ?id]
          [?e0 :foo/friend ?friend]
