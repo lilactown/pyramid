@@ -292,10 +292,10 @@
                          (map-indexed #(vector %2 %1))
                          (filter #(variable? (first %))))
                         pattern)
-              [ei ai vi] (map var->idx triple)]
-        :let [triple' [(if ei (nth left ei) e)
+              [ei ai vi] (map var->idx triple)
+              triple' [(if ei (nth left ei) e)
                        (if ai (nth left ai) a)
-                       (if vi (get left vi) v)]
+                       (if vi (nth left vi) v)]
               pattern' (->> triple'
                             (remove (complement variable?))
                             (remove (set pattern))
@@ -370,22 +370,53 @@
     (mapv #(when (some? %) (nth result %)) indices)))
 
 
+(defn in->results
+  [in]
+  #_(prn in)
+  ;; convert map {?var value|[value]} to ([?value] [?value]) with pattern meta
+  (let [expanded-in (for [[k v] in]
+                      (map
+                       #(with-meta [%] {:pattern [k]})
+                       (if (:many (meta k))
+                         v
+                         [v])))]
+    (loop [results [[]]
+           in expanded-in]
+      (if-let [hd (first in)]
+        (recur
+         (for [left results
+               right hd]
+           (with-meta
+             (concat left right)
+             {:pattern (concat (:pattern (meta left))
+                               (:pattern (meta right)))}))
+         (rest in)) ;; peace
+        results))))
+
+
+(comment
+  (in->results '{$ {} ?foo "bar"})
+
+  (in->results '{$ {} ^:many ?foo ["bar" "baz"] ?asdf [1 2 3]})
+
+  (in->results '{$ {} ^:many ?foo ["bar" "baz"] ^:many ?asdf [1 2 3]})
+  )
+
+
 (defn execute
   [{:keys [find in where]}]
   (let [db (get in $)]
     (loop [clauses where
-           results [(with-meta
-                      (vec (vals in))
-                      {:pattern (vec (keys in))})]]
-;;      (prn (first results))
- ;;     (prn (meta (first results)))
+           results (in->results in)]
+      (prn (first results))
+      (prn (meta (first results)))
       (if-let [clause (first clauses)]
         (recur
          (rest clauses)
          (rewrite-and-resolve-triple db results clause))
         (do
-   ;;       (prn (first results))
-  ;;        (prn (meta (first results)))
+          #_(prn (meta (first results)))
+          #_(clojure.pprint/pprint results)
           (project-results results find))))))
 
 
