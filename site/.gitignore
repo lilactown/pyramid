@@ -1,0 +1,5 @@
+node_modules
+public/js
+.cpcache
+.shadow-cljs
+/site/.clj-kondo/.cache/
