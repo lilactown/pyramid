@@ -95,15 +95,15 @@
               ["foo" "bar"]))
         "multi cardinality join on :in")
 
-  (t/is (= '(("foo" "foo")
-             ("foo" "bar")
-             ("foo" "baz")
-             ("bar" "foo")
-             ("bar" "bar")
-             ("bar" "baz")
-             ("baz" "foo")
-             ("baz" "bar")
-             ("baz" "baz"))
+  (t/is (= '(["foo" "foo"]
+             ["foo" "bar"]
+             ["foo" "baz"]
+             ["bar" "foo"]
+             ["bar" "bar"]
+             ["bar" "baz"]
+             ["baz" "foo"]
+             ["baz" "bar"]
+             ["baz" "baz"])
            (q '[:find ?name1 ?name2
                 :where
                 [?e1 :person/name ?name1]
