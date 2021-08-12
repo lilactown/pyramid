@@ -84,7 +84,8 @@
               db))
         "multiple cardinality value")
 
-  (t/is (= '(["123" "foo"])
+  (t/is (= '(["123" "foo"]
+             ["456" "bar"])
            (q '[:find ?id ?name
                 :in $ ^:many ?name
                 :where

@@ -408,8 +408,8 @@
   (let [db (get in $)]
     (loop [clauses where
            results (in->results in)]
-      (prn (first results))
-      (prn (meta (first results)))
+      ;; (prn (first results))
+      ;; (prn (meta (first results)))
       (if-let [clause (first clauses)]
         (recur
          (rest clauses)
