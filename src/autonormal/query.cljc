@@ -11,9 +11,9 @@
 (defn parse
   [query db & params]
   (let [[bindings clauses] (split-with #(not= % :where) query)
-        variables (->> bindings
-                       (take-while #(not= % :in))
-                       (drop 1))
+        find (->> bindings
+                    (take-while #(not= % :in))
+                    (drop 1))
         inputs (->> bindings
                     (drop-while #(not= % :in))
                     ;; users have to pass in $
@@ -28,7 +28,7 @@
                     (empty? clauses)
                     (conj {:query/anomaly
                            "No :where clauses given"}))]
-    {:find variables
+    {:find find
      :in (zipmap inputs (cons db params))
      :where clauses
      :anomalies anomalies}))

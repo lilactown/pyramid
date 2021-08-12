@@ -57,14 +57,15 @@
     [?e :person/name ?name]
     [?friend :person/name ?best-friend]])
 
-(ds/q
- query-1
- ds-animorphs)
+(time
+ (ds/q
+  query-1
+  ds-animorphs))
 
 (require '[autonormal.query :as a.q])
 
 
-(a.q/q query-1 animorphs-3)
+(time (a.q/q query-1 animorphs-3))
 
 
 (def query-2
@@ -74,13 +75,14 @@
     [?e :person/name ?name]
     [?friends :person/name ?friend]])
 
-(ds/q query-2 ds-animorphs)
+(time (ds/q query-2 ds-animorphs))
 
-(a.q/q query-2 animorphs-3)
+(time (a.q/q query-2 animorphs-3))
 
 
-(a.q/q
- '[:find ?e ?v
-   :where
-   [?e :friend/list ^:many ?v]]
- animorphs-3)
+(time
+ (a.q/q
+  '[:find ?e ?v
+    :where
+    [?e :friend/list ^:many ?v]]
+  animorphs-3))
