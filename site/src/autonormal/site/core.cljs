@@ -3,6 +3,7 @@
    ["react-dom" :as rdom]
    [autonormal.core :as a]
    [autonormal.site.codemirror :as site.cm]
+   [autonormal.site.components :as c]
    [autonormal.site.tree :as tree]
    [cljs.repl :as repl]
    [clojure.pprint :as pp]
@@ -16,69 +17,29 @@
 
 
 (def initial-data
-  {:person/id 0 :person/name "Rachel"
-   :friend/list [{:person/id 1 :person/name "Marco"}
-                 {:person/id 2 :person/name "Cassie"}
-                 {:person/id 3 :person/name "Jake"}
-                 {:person/id 4 :person/name "Tobias"}
-                 {:person/id 5 :person/name "Ax"}]})
-
-
-(def ^:private vconj (fnil conj []))
-
-
-(defnc button
-  [{:keys [disabled] :as props}]
-  (d/button
-   {:& (update
-       props
-       :class
-       (fnil conj [])
-       (if disabled
-         "bg-gray-400"
-         "bg-blue-400")
-       "px-2"
-       "py-1"
-       (when-not disabled "shadow")
-       "text-white")}))
-
-
-(defnc pane
-  [{:keys [title title-class class style children]}]
-  (d/div
-   {:class (into ["shadow"] class)}
-   (d/h3
-    {:class (into ["text-lg px-2 border-b"] title-class)
-     :style style}
-    title)
-   children))
-
-
-(defnc writable-pane
-  [props]
-  ($ pane
-     {:& (-> props
-             (update :class vconj "border" "border-solid" "border-blue-300")
-             (update :title-class vconj "border-blue-300 text-blue-400"))}))
-
-
-(defnc read-only-pane
-  [props]
-  ($ pane
-     {:& (-> props
-             (update :class vconj "border" "border-solid" "border-gray-400")
-             (update :title-class vconj "border-gray-400 text-gray-500"))}))
+  [{:person/id 0 :person/name "Rachel"
+    :friend/list [{:person/id 1
+                   :person/name "Marco"
+                   :friend/best [:person/id 3]}
+                  {:person/id 2 :person/name "Cassie"}
+                  {:person/id 3
+                   :person/name "Jake"
+                   :friend/best [:person/id 1]}
+                  {:person/id 4 :person/name "Tobias"}
+                  {:person/id 5 :person/name "Ax"}]}
+   {:species {:andalites [[:person/id 5]]}}
+   {:a {:deeply {:nested {:map {:of {:very {:important {:data [:person/id 0]}}}}}}}}])
 
 
 (defnc db-add-input
   [{:keys [on-add]}]
   (let [[data set-data] (hooks/use-state "")]
     (d/div
-     ($ writable-pane
+     ($ c/writable-pane
         ($ site.cm/editor
            {:value data
             :on-change set-data}))
-     ($ button
+     ($ c/button
         {:on-click (fn [_]
                      (set-data "")
                      (on-add (edn/read-string data)))}
@@ -109,7 +70,7 @@
      (d/div
       {:class "flex gap-2"
        :style {:min-height 300}}
-      ($ writable-pane
+      ($ c/writable-pane
          {:title "Query"
           :class ["flex-1 min-h-full"]}
          ($ site.cm/editor
@@ -117,7 +78,7 @@
              :on-change (hx.alpha/with-transition
                           start-result
                           set-query)}))
-      ($ read-only-pane
+      ($ c/read-only-pane
          {:title "Result"
           :class ["flex-1 transition-opacity delay-200 duration-400"
                   (if result-pending?
@@ -127,7 +88,7 @@
             {:value result})))
      (d/div
       {:class "py-2"}
-      ($ read-only-pane
+      ($ c/read-only-pane
          {:title "Database explorer"}
          ($ tree/data-tree {:data db}))))))
 
@@ -147,7 +108,7 @@
         ;; this is used to remount the editor when we transact changes
         ;; to the db data
         [editor-inst set-inst] (hooks/use-state 0)]
-    ($ writable-pane
+    ($ c/writable-pane
        {:title "Database"}
        (d/div
         {:class "overflow-scroll"
@@ -157,21 +118,21 @@
             :initial-value db-string
             :on-change #(when-not (= db-string %)
                           (dbnc-set-db (edn/read-string %)))}))
-       ($ button {:on-click #(do
-                               (set-db {})
-                               (set-inst inc))
-                  :class ["m-1"]} "Reset")
+       ($ c/button {:on-click #(do
+                                 (set-db {})
+                                 (set-inst inc))
+                    :class ["m-1"]} "Reset")
        #_(d/div
-        {:class "py-2"}
-        ($ db-add-input {:on-add #(do
-                                    (set-db a/add %)
-                                    (set-inst inc))})))))
+          {:class "py-2"}
+          ($ db-add-input {:on-add #(do
+                                      (set-db a/add %)
+                                      (set-inst inc))})))))
 
 
 (defnc app
   []
   (let [[screen set-screen] (hooks/use-state :query-explorer)
-        [db set-db] (hooks/use-state (a/db [initial-data]))
+        [db set-db] (hooks/use-state (a/db initial-data))
         [query set-query] (hooks/use-state "[]")
         [nav-pending? start-nav] (hx.alpha/use-transition)]
     (d/div
@@ -182,13 +143,13 @@
       (d/small {:class "italic"} "Playground"))
      (d/div
       {:class "pb-1 px-1 flex gap-1"}
-      ($ button
+      ($ c/button
          {:on-click (hx.alpha/with-transition
                       start-nav
                       #(set-screen :query-explorer))
           :disabled (= :query-explorer screen)}
          "Query Explorer")
-      ($ button
+      ($ c/button
          {:on-click (hx.alpha/with-transition
                       start-nav
                       #(set-screen :database-editor))
