@@ -2,8 +2,8 @@
   (:require
    ["react-dom" :as rdom]
    [autonormal.core :as a]
-   [autonormal.ident :as a.ident]
    [autonormal.site.codemirror :as site.cm]
+   [autonormal.site.tree :as tree]
    [cljs.repl :as repl]
    [clojure.pprint :as pp]
    [clojure.string :as string]
@@ -28,25 +28,25 @@
 
 
 (defnc button
-  [props]
+  [{:keys [disabled] :as props}]
   (d/button
    {:& (update
        props
        :class
        (fnil conj [])
-       (if (:disabled props)
+       (if disabled
          "bg-gray-400"
          "bg-blue-400")
        "px-2"
        "py-1"
-       "rounded-md"
+       (when-not disabled "shadow")
        "text-white")}))
 
 
 (defnc pane
   [{:keys [title title-class class style children]}]
   (d/div
-   {:class class}
+   {:class (into ["shadow"] class)}
    (d/h3
     {:class (into ["text-lg px-2 border-b"] title-class)
      :style style}
@@ -129,70 +129,7 @@
       {:class "py-2"}
       ($ read-only-pane
          {:title "Database explorer"}
-         (let [[expanded set-expanded] (hooks/use-state nil)]
-           (d/div
-            {:class ["flex p-2 gap-2 flex-col"]}
-            (if (empty? db)
-              (d/span {:class "italic"} "DB is empty")
-              (for [[k v] db
-                    :when (map? v)
-                    [k2 v2] v
-                    :when (map? v2)
-                    :let [ident [k k2]
-                          pstr (pr-str v2)
-                          expanded? (= expanded ident)]]
-                (d/div
-                 {:key (str ident)
-                  :class "flex"}
-                 (d/div
-                  {:class [(if expanded?
-                             "bg-blue-300"
-                             "bg-gray-300")
-                           "px-3"]
-                   :on-click (if expanded?
-                               #(set-expanded nil)
-                               #(set-expanded ident))}
-                  (d/code {:class "code"}
-                          (str k " " k2 )))
-                 (d/div
-                  {:class ["flex-1 px-2"
-                           (when expanded? "bg-blue-100")
-                           "overflow-scroll"]}
-                  (d/pre
-                   (if expanded?
-                     (for [[k3 v3] v2]
-                       (d/div
-                        {:class "flex"
-                         :key (str k3)}
-                        (d/div
-                         (d/div
-                          {:class "px-3 bg-blue-300"}
-                          (str k3)))
-                        (d/div
-                         {:class "px-2 flex flex-col gap-1"}
-                         (cond
-                           (a.ident/ident? v3) (pr-str v3)
-
-                           (and (sequential? v3)
-                                (every? a.ident/ident? v3))
-                           (for [ident v3]
-                             (d/div
-                              {:key (str ident)
-                               :class ["px-1"
-                                       "border"
-                                       "border-dotted"
-                                       "border-blue-500"
-                                       "hover:bg-blue-300"
-                                       "cursor-pointer"]
-                               :on-click #(set-expanded ident)}
-                              (str ident)))
-
-                           :else
-                           (with-out-str
-                             (pp/pprint v3))))))
-                     (d/code
-                      {:class "max-w-full code"}
-                      pstr))))))))))))))
+         ($ tree/data-tree {:data db}))))))
 
 
 (defnc database-editor
