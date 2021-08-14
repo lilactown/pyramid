@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "css": "postcss public/css/app.css -o public/css/app.compiled.css",
     "watch:css": "postcss public/css/app.css -o public/css/app.compiled.css -w",
-    "release": "shadow-cljs release --verbose app && npm run css"
+    "release": "shadow-cljs release --verbose app && NODE_ENV=production npm run css"
   },
   "author": "",
   "license": "ISC",
