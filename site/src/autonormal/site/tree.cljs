@@ -9,7 +9,7 @@
    [helix.hooks :as hooks]))
 
 
-(defnc expandable
+(defnc expandable-key
   [{:keys [data expanded? on-click]}]
   (d/div
    {:class ["px-2 py-0.5"
@@ -38,14 +38,14 @@
            (with-out-str (pp/pprint data))))
 
          (a.ident/ident? data)
-         ($ expandable
+         ($ expandable-key
             {:on-click #(set-top-expanded data)
              :data data})
 
          (and (sequential? data)
               (every? a.ident/ident? data))
          (for [ident data]
-           ($ expandable
+           ($ expandable-key
               {:key (str ident)
                :on-click #(set-top-expanded ident)
                :data ident}))
@@ -59,7 +59,7 @@
           {:class "flex"
            :key (str k)}
           (d/div
-           ($ expandable
+           ($ expandable-key
               {:data k
                :expanded? (= k expanded)
                :on-click (if (= k expanded)
@@ -101,7 +101,7 @@
             (d/div
              {:key (str ident)
               :class "flex"}
-             ($ expandable
+             ($ expandable-key
                 {:expanded? expanded?
                  :on-click (hx.alpha/with-transition
                              start-expand

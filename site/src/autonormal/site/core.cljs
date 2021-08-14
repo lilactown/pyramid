@@ -176,7 +176,7 @@
                       start-nav
                       #(set-screen :query-explorer))
           :disabled (= :query-explorer screen)}
-         "Query Explorer")
+         "Explorer")
       ($ c/button
          {:on-click (hx.alpha/with-transition
                       start-nav
