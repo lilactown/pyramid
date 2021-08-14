@@ -12,7 +12,7 @@
 (defnc expandable
   [{:keys [data expanded? on-click]}]
   (d/div
-   {:class ["px-3"
+   {:class ["px-2 py-0.5"
             (when-not expanded?
               "shadow")
             (if expanded?

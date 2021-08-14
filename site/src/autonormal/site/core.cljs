@@ -17,18 +17,39 @@
 
 
 (def initial-data
-  [{:person/id 0 :person/name "Rachel"
-    :friend/list [{:person/id 1
-                   :person/name "Marco"
-                   :friend/best [:person/id 3]}
-                  {:person/id 2 :person/name "Cassie"}
-                  {:person/id 3
-                   :person/name "Jake"
-                   :friend/best [:person/id 1]}
-                  {:person/id 4 :person/name "Tobias"}
-                  {:person/id 5 :person/name "Ax"}]}
-   {:species {:andalites [[:person/id 5]]}}
-   {:a {:deeply {:nested {:map {:of {:very {:important {:data [:person/id 0]}}}}}}}}])
+  (let [friends '([:person/id 0]
+                  [:person/id 1]
+                  [:person/id 2]
+                  [:person/id 3]
+                  [:person/id 4]
+                  [:person/id 5])]
+    [{:person/id 0 :person/name "Rachel"
+      :friend/list (remove #{[:person/id 0]} friends)}
+     {:person/id 1
+      :person/name "Marco"
+      :friend/best [:person/id 3]
+      :friend/list (remove #{[:person/id 1]} friends)}
+     {:person/id 2 :person/name "Cassie"
+      :friend/list (remove #{[:person/id 2]} friends)}
+     {:person/id 3
+      :person/name "Jake"
+      :friend/best [:person/id 1]
+      :friend/list (remove #{[:person/id 3]} friends)}
+     {:person/id 4 :person/name "Tobias"
+      :friend/best {:person/id 5}
+      :friend/list (remove #{[:person/id 4]} friends)}
+     {:person/id 5 :person/name "Ax"
+      :friend/best {:person/id 4}
+      :friend/list (remove #{[:person/id 5]} friends)}
+     {:species {:andalites [[:person/id 5]]}}
+     {:a
+      {:deeply
+       {:nested
+        {:map
+         {:of
+          {:very
+           {:important
+            {:data [:person/id 0]}}}}}}}}]))
 
 
 (defnc db-add-input
@@ -118,10 +139,17 @@
             :initial-value db-string
             :on-change #(when-not (= db-string %)
                           (dbnc-set-db (edn/read-string %)))}))
-       ($ c/button {:on-click #(do
-                                 (set-db {})
-                                 (set-inst inc))
-                    :class ["m-1"]} "Reset")
+       ($ c/button
+          {:on-click #(do
+                        (set-db {})
+                        (set-inst inc))
+           :class ["m-1"]}
+          "Reset")
+       ($ c/button
+          {:on-click (fn [_]
+                       (set-db #(a/db [%]))
+                       (set-inst inc))}
+          "Normalize")
        #_(d/div
           {:class "py-2"}
           ($ db-add-input {:on-add #(do
