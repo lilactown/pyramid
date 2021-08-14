@@ -80,7 +80,7 @@
 
 
 (defnc editor
-  [{:keys [initial-value on-change value]}]
+  [{:keys [initial-value on-change value style]}]
   (let [cm-instance (hooks/use-ref nil)
         cm-mount (hooks/use-callback
                   :once
@@ -112,5 +112,6 @@
                                    :insert value}}))]
              (.dispatch cm tx))))))
     (d/div
-     {:class ""
+     {:class "min-h-full"
+      :style style
       :ref cm-mount})))

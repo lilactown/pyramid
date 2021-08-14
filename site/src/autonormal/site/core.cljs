@@ -2,6 +2,7 @@
   (:require
    ["react-dom" :as rdom]
    [autonormal.core :as a]
+   [autonormal.ident :as a.ident]
    [autonormal.site.codemirror :as site.cm]
    [cljs.repl :as repl]
    [clojure.pprint :as pp]
@@ -43,11 +44,12 @@
 
 
 (defnc pane
-  [{:keys [title title-class class children]}]
+  [{:keys [title title-class class style children]}]
   (d/div
    {:class class}
    (d/h3
-    {:class (into ["text-lg px-2 border-b"] title-class)}
+    {:class (into ["text-lg px-2 border-b"] title-class)
+     :style style}
     title)
    children))
 
@@ -84,9 +86,8 @@
 
 
 (defnc query-explorer
-  [{:keys [db]}]
-  (let [[query set-query] (hooks/use-state "[]")
-        [result-pending? start-result] (hx.alpha/use-transition)
+  [{:keys [db query set-query]}]
+  (let [[result-pending? start-result] (hx.alpha/use-transition)
         set-query (hooks/use-memo
                    :once
                    (gfn/debounce set-query 400))
@@ -102,12 +103,15 @@
                         (with-out-str
                           (pp/pprint (cljs.repl/Error->map e)))))
                     (string/trim)))]
+    ;; simulate long render
+    ;; (doseq [x (range 10000) y (range 10000)] (* x y))
     (d/div
      (d/div
-      {:class "flex gap-2"}
+      {:class "flex gap-2"
+       :style {:min-height 300}}
       ($ writable-pane
          {:title "Query"
-          :class ["flex-1"]}
+          :class ["flex-1 min-h-full"]}
          ($ site.cm/editor
             {:initial-value query
              :on-change (hx.alpha/with-transition
@@ -115,14 +119,80 @@
                           set-query)}))
       ($ read-only-pane
          {:title "Result"
-          :class ["flex-1"]}
+          :class ["flex-1 transition-opacity delay-200 duration-400"
+                  (if result-pending?
+                    "opacity-20"
+                    "opacity-100")]}
          ($ site.cm/editor
             {:value result})))
-     #_(d/div
+     (d/div
       {:class "py-2"}
       ($ read-only-pane
          {:title "Database explorer"}
-         )))))
+         (let [[expanded set-expanded] (hooks/use-state nil)]
+           (d/div
+            {:class ["flex p-2 gap-2 flex-col"]}
+            (if (empty? db)
+              (d/span {:class "italic"} "DB is empty")
+              (for [[k v] db
+                    :when (map? v)
+                    [k2 v2] v
+                    :when (map? v2)
+                    :let [ident [k k2]
+                          pstr (pr-str v2)
+                          expanded? (= expanded ident)]]
+                (d/div
+                 {:key (str ident)
+                  :class "flex"}
+                 (d/div
+                  {:class [(if expanded?
+                             "bg-blue-300"
+                             "bg-gray-300")
+                           "px-3"]
+                   :on-click (if expanded?
+                               #(set-expanded nil)
+                               #(set-expanded ident))}
+                  (d/code {:class "code"}
+                          (str k " " k2 )))
+                 (d/div
+                  {:class ["flex-1 px-2"
+                           (when expanded? "bg-blue-100")
+                           "overflow-scroll"]}
+                  (d/pre
+                   (if expanded?
+                     (for [[k3 v3] v2]
+                       (d/div
+                        {:class "flex"
+                         :key (str k3)}
+                        (d/div
+                         (d/div
+                          {:class "px-3 bg-blue-300"}
+                          (str k3)))
+                        (d/div
+                         {:class "px-2 flex flex-col gap-1"}
+                         (cond
+                           (a.ident/ident? v3) (pr-str v3)
+
+                           (and (sequential? v3)
+                                (every? a.ident/ident? v3))
+                           (for [ident v3]
+                             (d/div
+                              {:key (str ident)
+                               :class ["px-1"
+                                       "border"
+                                       "border-dotted"
+                                       "border-blue-500"
+                                       "hover:bg-blue-300"
+                                       "cursor-pointer"]
+                               :on-click #(set-expanded ident)}
+                              (str ident)))
+
+                           :else
+                           (with-out-str
+                             (pp/pprint v3))))))
+                     (d/code
+                      {:class "max-w-full code"}
+                      pstr))))))))))))))
 
 
 (defnc database-editor
@@ -165,6 +235,7 @@
   []
   (let [[screen set-screen] (hooks/use-state :query-explorer)
         [db set-db] (hooks/use-state (a/db [initial-data]))
+        [query set-query] (hooks/use-state "[]")
         [nav-pending? start-nav] (hx.alpha/use-transition)]
     (d/div
      {:class "container mx-auto p-3"}
@@ -193,8 +264,13 @@
      (d/div
       {:class "p-1"}
       (case screen
-        :query-explorer ($ query-explorer {:db db})
-        :database-editor ($ database-editor {:db db :set-db set-db})
+        :query-explorer ($ query-explorer
+                           {:db db
+                            :query query
+                            :set-query set-query})
+        :database-editor ($ database-editor
+                            {:db db
+                             :set-db set-db})
         nil)))))
 
 
