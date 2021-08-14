@@ -48,7 +48,7 @@
   ($ pane
      {:& (-> props
              (update :class vconj "shadow" "border" "border-solid" "border-blue-300")
-             (update :title-class vconj "bg-blue-100 border-blue-300 text-blue-400"))}))
+             (update :title-class vconj "bg-blue-100 border-blue-300 text-blue-500"))}))
 
 
 (defnc read-only-pane
