@@ -22,6 +22,18 @@
         "text-white")}))
 
 
+(defnc tab
+  [{:keys [active? class on-click children]}]
+  (d/div
+   {:on-click on-click
+    :class (into ["border-b-2 border-solid"
+                  (if active?
+                    "border-blue-400"
+                    "border-gray-300")
+                  "cursor-pointer"] class)}
+   children))
+
+
 (defnc title-bar
   [props]
   (d/div

@@ -170,7 +170,6 @@
                                       (set-inst inc))})))))
 
 
-
 (defnc app
   []
   (let [[screen set-screen] (hooks/use-state :query-explorer)
@@ -180,23 +179,25 @@
         [nav-pending? start-nav] (hx.alpha/use-transition)]
     (d/div
      {:class "container mx-auto p-3"}
-     (d/h1
-      {:class "text-xl mx-1 my-2 border-b-2 border-solid border-blue-400"}
-      "Autonormal "
-      (d/small {:class "italic"} "Playground"))
      (d/div
-      {:class "pb-1 px-1 flex gap-1"}
-      ($ c/button
+      {:class "pb-1 flex gap-1"}
+      (d/h1
+       {:class "text-xl ml-1 mr-8 my-2 border-solid border-blue-400"}
+       "Autonormal "
+       (d/small {:class "italic"} "Playground"))
+      ($ c/tab
          {:on-click (hx.alpha/with-transition
                       start-nav
                       #(set-screen :query-explorer))
-          :disabled (= :query-explorer screen)}
+          :active? (= :query-explorer screen)
+          :class ["mx-1 my-2"]}
          "Explorer")
-      ($ c/button
+      ($ c/tab
          {:on-click (hx.alpha/with-transition
                       start-nav
                       #(set-screen :database-editor))
-          :disabled (= :database-editor screen)}
+          :active? (= :database-editor screen)
+          :class ["mx-1 my-2"]}
          "Database Editor")
       (d/span
        {:class ["transition-opacity delay-200 duration-400 select-none"
