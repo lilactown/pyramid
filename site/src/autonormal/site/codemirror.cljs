@@ -73,8 +73,7 @@
                      (.of
                       (fn [^js update]
                         (when (.-docChanged update)
-                          (-> (.. update -state -doc -text)
-                              (->> (string/join "\n"))
+                          (-> (.. update -state -doc toString)
                               (on-change))))))))})
         :parent parent}))
 
