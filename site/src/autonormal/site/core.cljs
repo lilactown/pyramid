@@ -135,7 +135,6 @@
   [{:keys [db set-db]}]
   ;; simulate long render
   ;; (doseq [x (range 10000) y (range 10000)] (* x y))
-  (prn db)
   (let [db-string (hooks/use-memo
                    [db]
                    (string/trim
