@@ -64,7 +64,9 @@
      ($ c/button
         {:on-click (fn [_]
                      (set-data "")
-                     (on-add (edn/read-string data)))}
+                     (on-add (edn/read-string
+                              {:default tagged-literal}
+                              data)))}
         "Add"))))
 
 
@@ -77,9 +79,11 @@
         result (hooks/use-memo
                 [db query]
                 (-> (try
-                      (let [query-data (edn/read-string query)]
+                      (let [query-string (edn/read-string
+                                          {:default tagged-literal}
+                                          query)]
                         (with-out-str
-                          (cond-> query-data
+                          (cond-> query-string
                             (= :pull query-type) (->> (a/pull db))
                             (= :datalog query-type) (a.query/q db)
                             true (pp/pprint))))
@@ -131,6 +135,7 @@
   [{:keys [db set-db]}]
   ;; simulate long render
   ;; (doseq [x (range 10000) y (range 10000)] (* x y))
+  (prn db)
   (let [db-string (hooks/use-memo
                    [db]
                    (string/trim
@@ -150,8 +155,13 @@
         ($ site.cm/editor
            {:key editor-inst
             :initial-value db-string
-            :on-change #(when-not (= db-string %)
-                          (dbnc-set-db (edn/read-string %)))}))
+            :on-change
+            #(when-not (= db-string %)
+               (js/console.log %)
+               (try
+                 (dbnc-set-db (edn/read-string {:default tagged-literal} %))
+                 (catch js/Error e
+                   (js/console.error e))))}))
        ($ c/button
           {:on-click #(do
                         (set-db {})
