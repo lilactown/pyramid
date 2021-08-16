@@ -2,6 +2,12 @@
   (:require
    [clojure.string :as string]))
 
+;; TODO
+;;  * wildcards
+;;  * boolean logic / filters
+;;  * pull in :find
+;;  * single result in :find
+
 
 (def ? '?)
 (def $ '$)
