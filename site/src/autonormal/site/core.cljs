@@ -156,7 +156,6 @@
             :initial-value db-string
             :on-change
             #(when-not (= db-string %)
-               (js/console.log %)
                (try
                  (dbnc-set-db (edn/read-string {:default tagged-literal} %))
                  (catch js/Error e
