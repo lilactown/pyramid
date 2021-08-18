@@ -94,10 +94,10 @@
     (d/div
      (d/div
       {:class "flex gap-2"
-       :style {:height 500}}
+       :style {:height "75vh"}}
       ($ c/writable-pane
          {:title "Query"
-          :class ["flex-1 min-h-full"]}
+          :class ["flex-1 min-h-full overflow-scroll"]}
          ($ site.cm/editor
             {:initial-value query
              :on-change (hx.alpha/with-transition
