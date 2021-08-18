@@ -96,7 +96,7 @@
     (d/div
      (d/div
       {:class "flex gap-2"
-       :style {:min-height 300}}
+       :style {:min-height 500}}
       ($ c/writable-pane
          {:title (d/div
                   {:class "flex items-center"}
@@ -123,12 +123,14 @@
                     "opacity-20"
                     "opacity-100")]}
          ($ site.cm/editor
-            {:value result})))
-     (d/div
-      {:class "py-2"}
-      ($ c/read-only-pane
-         {:title "Database explorer"}
-         ($ tree/data-tree {:data db}))))))
+            {:value result}))))))
+
+
+(defnc database-explorer
+  [{:keys [db]}]
+  ($ c/read-only-pane
+     {:title "Database explorer"}
+     ($ tree/data-tree {:data db})))
 
 
 (defnc database-editor
@@ -180,7 +182,7 @@
 
 (defnc app
   []
-  (let [[screen set-screen] (hooks/use-state :query-explorer)
+  (let [[screen set-screen] (hooks/use-state :query)
         [db set-db] (hooks/use-state (a/db initial-data))
         [query set-query] (hooks/use-state "[]")
         [query-type set-query-type] (hooks/use-state :pull)
@@ -196,15 +198,22 @@
       ($ c/tab
          {:on-click (hx.alpha/with-transition
                       start-nav
-                      #(set-screen :query-explorer))
-          :active? (= :query-explorer screen)
+                      #(set-screen :query))
+          :active? (= :query screen)
           :class ["mx-1 my-2"]}
-         "Explorer")
+         "Query")
       ($ c/tab
          {:on-click (hx.alpha/with-transition
                       start-nav
-                      #(set-screen :database-editor))
-          :active? (= :database-editor screen)
+                      #(set-screen :db-explorer))
+          :active? (= :db-explorer screen)
+          :class ["mx-1 my-2"]}
+         "Database Explorer")
+      ($ c/tab
+         {:on-click (hx.alpha/with-transition
+                      start-nav
+                      #(set-screen :db-editor))
+          :active? (= :db-editor screen)
           :class ["mx-1 my-2"]}
          "Database Editor")
       (d/span
@@ -214,15 +223,17 @@
      (d/div
       {:class "p-1"}
       (case screen
-        :query-explorer ($ query-explorer
-                           {:db db
-                            :query query
-                            :set-query set-query
-                            :query-type query-type
-                            :set-query-type set-query-type})
-        :database-editor ($ database-editor
-                            {:db db
-                             :set-db set-db})
+        :query ($ query-explorer
+                  {:db db
+                   :query query
+                   :set-query set-query
+                   :query-type query-type
+                   :set-query-type set-query-type})
+        :db-explorer ($ database-explorer
+                        {:db db})
+        :db-editor ($ database-editor
+                      {:db db
+                       :set-db set-db})
         nil)))))
 
 
