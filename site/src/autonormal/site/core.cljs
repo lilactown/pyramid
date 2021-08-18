@@ -96,7 +96,7 @@
     (d/div
      (d/div
       {:class "flex gap-2"
-       :style {:min-height 500}}
+       :style {:height "75vh"}}
       ($ c/writable-pane
          {:title (d/div
                   {:class "flex items-center"}
@@ -110,7 +110,7 @@
                      :value (name query-type)}
                     (d/option {:value "pull"} "Pull")
                     (d/option {:value "datalog"} "Datalog"))))
-          :class ["flex-1 min-h-full"]}
+          :class ["flex-1 min-h-full overflow-scroll"]}
          ($ site.cm/editor
             {:initial-value query
              :on-change (hx.alpha/with-transition
@@ -121,7 +121,8 @@
           :class ["flex-1 transition-opacity delay-200 duration-400"
                   (if result-pending?
                     "opacity-20"
-                    "opacity-100")]}
+                    "opacity-100")
+                  "overflow-scroll"]}
          ($ site.cm/editor
             {:value result}))))))
 
