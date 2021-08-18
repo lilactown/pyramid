@@ -94,7 +94,7 @@
     (d/div
      (d/div
       {:class "flex gap-2"
-       :style {:min-height 500}}
+       :style {:height 500}}
       ($ c/writable-pane
          {:title "Query"
           :class ["flex-1 min-h-full"]}
@@ -108,7 +108,8 @@
           :class ["flex-1 transition-opacity delay-200 duration-400"
                   (if result-pending?
                     "opacity-20"
-                    "opacity-100")]}
+                    "opacity-100")
+                  "overflow-scroll"]}
          ($ site.cm/editor
             {:value result}))))))
 
