@@ -1,4 +1,4 @@
-(defproject town.lilac/pyramid "2.0.0"
+(defproject town.lilac/pyramid "3.0.0"
   :description "A library for storing and querying graph data in a Clojure map"
   :url "https://github.com/lilactown/pyramid"
   :license {:name "Eclipse Public License"
