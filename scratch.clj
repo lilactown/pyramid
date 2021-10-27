@@ -1,5 +1,5 @@
 (require '[meander.epsilon :as m])
-(require '[autonormal.core :as a])
+(require '[pyramid.core :as p])
 
 (def data
   {:person/id 0 :person/name "Rachel"
@@ -19,14 +19,14 @@
   {:species {:andalites [{:person/id 5
                           :person/species "andalite"}]}})
 
-(def animorphs (a/db [data]))
+(def animorphs (p/db [data]))
 
 (def animorphs-2
-  (a/add animorphs data-2))
+  (p/add animorphs data-2))
 (def animorphs-3
-  (a/add animorphs-2 data-3))
+  (p/add animorphs-2 data-3))
 
-(a/pull animorphs-3 [{[:person/id 1] [:person/name
+(p/pull animorphs-3 [{[:person/id 1] [:person/name
                                       {:friend/best [:person/name]}]}])
 ;; => {[:person/id 1] {:person/name "Marco", :friend/best #:person{:name "Jake"}}}
 
@@ -62,10 +62,10 @@
   query-1
   ds-animorphs))
 
-(require '[autonormal.query :as a.q])
+(require '[pyramid.query :as p.q])
 
 
-(time (a.q/q query-1 animorphs-3))
+(time (p.q/q query-1 animorphs-3))
 
 
 (def query-2
@@ -77,11 +77,11 @@
 
 (time (ds/q query-2 ds-animorphs))
 
-(time (a.q/q query-2 animorphs-3))
+(time (p.q/q query-2 animorphs-3))
 
 
 (time
- (a.q/q
+ (p.q/q
   '[:find ?e ?v
     :where
     [?e :friend/list ^:many ?v]]
