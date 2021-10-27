@@ -1,2 +1,2 @@
 ((nil
-  (cider-clojure-cli-global-options . "-A:dev")))
+  (cider-clojure-cli-global-options . "-A:dev:test:benchmark:profile")))

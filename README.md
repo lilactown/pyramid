@@ -2,7 +2,8 @@
 
 (Formerly called `autonormal`)
 
-[![Clojars Project](https://img.shields.io/clojars/v/lilactown/autonormal.svg)](https://clojars.org/lilactown/autonormal) [![cljdoc badge](https://cljdoc.org/badge/lilactown/autonormal)](https://cljdoc.org/d/lilactown/autonormal/CURRENT)
+
+[![Clojars Project](https://img.shields.io/clojars/v/town.lilac/pyramid.svg)](https://clojars.org/town.lilac/pyramid) [![cljdoc badge](https://cljdoc.org/badge/lilactown/autonormal)](https://cljdoc.org/d/lilactown/autonormal/CURRENT)
 
 
 A library for storing graph data in a Clojure map that automatically

@@ -18,13 +18,11 @@
   To get meta-information about what entities were added or queried, use the
   `add-report` and `pull-report` functions."
   (:require
-<<<<<<< HEAD:src/autonormal/core.cljc
-   [autonormal.ident :as ident]
-   [autonormal.pull :as pull]
-=======
    [pyramid.ident :as ident]
->>>>>>> 1251ddb (rename to pyramid):src/pyramid/core.cljc
+   [pyramid.pull :as pull]
+   [pyramid.zip :as p.zip]
    [clojure.set]
+   [fast-zip.core :as zip]
    [edn-query-language.core :as eql]))
 
 
@@ -43,8 +41,7 @@
 (defn- lookup-ref-of
   [identify entity]
   (let [identify (if-some [ident-key (get (meta entity) :db/ident)]
-                   (do (prn :ident-key ident-key)
-                       (ident/by-keys ident-key))
+                   (ident/by-keys ident-key)
                    identify)]
     (identify entity)))
 
@@ -114,6 +111,40 @@
            normalized))))))
 
 
+(defn- normalized-map
+  [identify m]
+  (loop [loc (zip/next (p.zip/tree-zipper m))]
+    (cond
+      (zip/end? loc) (zip/root loc)
+
+      (entity-map? identify (zip/node loc))
+      (recur
+       (zip/next (zip/replace loc (lookup-ref-of identify (zip/node loc)))))
+
+      :else (recur (zip/next loc)))))
+
+
+(defn- normalize2
+  [identify data]
+  (loop [loc (p.zip/tree-zipper data)
+         normalized []]
+    (if (zip/end? loc)
+      normalized
+      (let [node (zip/node loc)]
+        (cond
+          (entity-map? identify node)
+          (recur
+           (zip/next loc)
+           (conj normalized (normalized-map identify node)))
+
+          :else (recur (zip/next loc) normalized))))))
+
+
+#_(normalize2 default-ident {:foo "bar" :baz "jkl"})
+
+#_(normalize2 default-ident {:foo/id "bar" :children [{:foo/id "bar"} {:foo/id "baz"}]})
+
+
 (defn add-report
   "Takes a normalized map `db`, and some new `data`.
 
@@ -123,7 +154,7 @@
   ([db data]
    (let [db-meta (meta db)
          identify (:db/ident db-meta default-ident)
-         initial-entities (normalize identify data)]
+         initial-entities (normalize2 identify data)]
      (loop [entities initial-entities
             db' (if (entity-map? identify data)
                   db
