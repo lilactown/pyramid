@@ -1,6 +1,6 @@
 {:paths ["src"]
  :deps {binaryage/devtools {:mvn/version "1.0.3"}
-        lilactown/autonormal {:local/root "../"}
+        town.lilac/pyramid {:local/root "../"}
         lilactown/helix {:mvn/version "0.1.1"}
         nextjournal.clojure-mode/nextjournal.clojure-mode
         {:git/url "https://github.com/nextjournal/clojure-mode"

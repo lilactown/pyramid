@@ -1,4 +1,4 @@
-(ns autonormal.core
+(ns pyramid.core
   "A library for storing graph data in a Clojure map that automatically
   normalizes nested data and allows querying via EQL.
 
@@ -18,8 +18,12 @@
   To get meta-information about what entities were added or queried, use the
   `add-report` and `pull-report` functions."
   (:require
+<<<<<<< HEAD:src/autonormal/core.cljc
    [autonormal.ident :as ident]
    [autonormal.pull :as pull]
+=======
+   [pyramid.ident :as ident]
+>>>>>>> 1251ddb (rename to pyramid):src/pyramid/core.cljc
    [clojure.set]
    [edn-query-language.core :as eql]))
 
@@ -207,7 +211,7 @@
 
 
 (defn data->ast
-  "Like autonormal.core/data->query, but returns the AST."
+  "Like pyramid.core/data->query, but returns the AST."
   [data]
   (cond
     (map? data) {:type     :root

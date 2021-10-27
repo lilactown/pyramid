@@ -1,4 +1,4 @@
-(ns autonormal.query
+(ns pyramid.query
   (:require
    [clojure.string :as string]))
 

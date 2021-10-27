@@ -1,6 +1,6 @@
-(ns autonormal.query-test
+(ns pyramid.query-test
   (:require
-   [autonormal.query :as a.q :refer [q]]
+   [pyramid.query :as a.q :refer [q]]
    [clojure.test :as t]))
 
 

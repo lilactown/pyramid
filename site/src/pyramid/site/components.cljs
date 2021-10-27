@@ -1,4 +1,4 @@
-(ns autonormal.site.components
+(ns pyramid.site.components
   (:require
    [helix.core :refer [defnc $]]
    [helix.dom :as d]))

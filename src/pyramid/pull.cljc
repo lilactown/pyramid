@@ -1,6 +1,6 @@
-(ns autonormal.pull
+(ns pyramid.pull
   (:require
-   [autonormal.ident :as ident]
+   [pyramid.ident :as ident]
    [edn-query-language.core :as eql]))
 
 

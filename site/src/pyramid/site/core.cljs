@@ -1,11 +1,11 @@
-(ns autonormal.site.core
+(ns pyramid.site.core
   (:require
    ["react-dom" :as rdom]
-   [autonormal.core :as a]
-   [autonormal.query :as a.query]
-   [autonormal.site.codemirror :as site.cm]
-   [autonormal.site.components :as c]
-   [autonormal.site.tree :as tree]
+   [pyramid.core :as a]
+   [pyramid.query :as a.query]
+   [pyramid.site.codemirror :as site.cm]
+   [pyramid.site.components :as c]
+   [pyramid.site.tree :as tree]
    [cljs.repl :as repl]
    [clojure.pprint :as pp]
    [clojure.string :as string]
@@ -194,7 +194,7 @@
       {:class "pb-1 flex gap-1"}
       (d/h1
        {:class "text-xl ml-1 mr-8 my-2 border-solid border-blue-400"}
-       "Autonormal "
+       "Pyramid "
        (d/small {:class "italic"} "Playground"))
       ($ c/tab
          {:on-click (hx.alpha/with-transition

@@ -3,5 +3,5 @@
  :builds {:app {:target :browser
                 :output-dir "public/js"
                 :asset-path "/js"
-                :modules {:main {:entries [autonormal.site.core]
-                                 :init-fn autonormal.site.core/start}}}}}
+                :modules {:main {:entries [pyramid.site.core]
+                                 :init-fn pyramid.site.core/start}}}}}
