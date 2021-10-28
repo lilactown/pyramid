@@ -12,4 +12,4 @@
 
 (defn tree-zipper
   [tree]
-  (zip/zipper coll? seq make-node tree))
+  (zipper coll? seq make-tree-node tree))

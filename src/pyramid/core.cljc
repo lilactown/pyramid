@@ -119,7 +119,8 @@
 
       (entity-map? identify (zip/node loc))
       (recur
-       (zip/next (zip/replace loc (lookup-ref-of identify (zip/node loc)))))
+       (zip/next
+        (zip/replace loc (lookup-ref-of identify (zip/node loc)))))
 
       :else (recur (zip/next loc)))))
 
@@ -131,13 +132,12 @@
     (if (zip/end? loc)
       normalized
       (let [node (zip/node loc)]
-        (cond
-          (entity-map? identify node)
+        (if (entity-map? identify node)
           (recur
            (zip/next loc)
            (conj normalized (normalized-map identify node)))
 
-          :else (recur (zip/next loc) normalized))))))
+          (recur (zip/next loc) normalized))))))
 
 
 #_(normalize2 default-ident {:foo "bar" :baz "jkl"})

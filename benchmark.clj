@@ -34,7 +34,7 @@
       :foo/metadata {:some ["dumb" "data"]}})))
 
 
-(c/bench (p/db big-data))
+(c/quick-bench (p/db big-data))
 
 
 (prof/profile
