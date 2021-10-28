@@ -51,29 +51,6 @@
        (some? (lookup-ref-of identify x))))
 
 
-(defn- replace-all-nested-entities
-  [identify v]
-  (cond
-    (entity-map? identify v)
-    (lookup-ref-of identify v)
-
-    (map? v) ;; map not an entity
-    (into
-     (empty v)
-     (map
-      (juxt first
-            (comp #(replace-all-nested-entities identify %) second)))
-     v)
-
-    (and (coll? v) (every? #(entity-map? identify %) v))
-    (into (empty v) (map #(lookup-ref-of identify %)) v)
-
-    (coll? v)
-    (into (empty v) (map #(replace-all-nested-entities identify %)) v)
-
-    :else v))
-
-
 (defn make-tree-node
   [node children]
   (if (map-entry? node)
