@@ -27,11 +27,12 @@
 
 
 (def big-data
-  (vec
-   (for [i (range 1000)]
-     {:foo/id (str "id" i)
-      :foo/name (str "bar" i)
-      :foo/metadata {:some ["dumb" "data"]}})))
+  [{:foo/data
+   (vec
+    (for [i (range 1000)]
+      {:foo/id (str "id" i)
+       :foo/name (str "bar" i)
+       :foo/metadata {:some ["dumb" "data"]}})) } ])
 
 
 (c/quick-bench (p/db big-data))

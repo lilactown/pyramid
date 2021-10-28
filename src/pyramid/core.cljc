@@ -20,9 +20,8 @@
   (:require
    [pyramid.ident :as ident]
    [pyramid.pull :as pull]
-   [pyramid.zip :as p.zip]
-   [clojure.set]
    [fast-zip.core :as zip]
+   [clojure.set]
    [edn-query-language.core :as eql]))
 
 
@@ -75,45 +74,21 @@
     :else v))
 
 
-(defn- normalize
-  [identify data]
-  (loop [kvs data
-         data data
-         queued []
-         normalized []]
-    (if-some [[k v] (first kvs)]
-      (recur
-       ;; move on to the next key
-       (rest kvs)
-       ;; update our data with lookup-refs
-       (assoc data k (replace-all-nested-entities identify v))
-       ;; add potential entity v to the queue
-       (cond
-         (map? v)
-         (conj queued v)
+(defn make-tree-node
+  [node children]
+  (if (map-entry? node)
+    (into [] children)
+    (into (empty node) children)))
 
-         (and (coll? v) (every? #(entity-map? identify %) v))
-         (apply conj queued v)
 
-         :else queued)
-       normalized)
-      (if (empty? queued)
-        ;; nothing left to do, return all normalized entities
-        (if (entity-map? identify data)
-          (conj normalized data)
-          normalized)
-        (recur
-         (first queued)
-         (first queued)
-         (rest queued)
-         (if (entity-map? identify data)
-           (conj normalized data)
-           normalized))))))
+(defn tree-zipper
+  [tree]
+  (zip/zipper coll? seq make-tree-node tree))
 
 
 (defn- normalized-map
   [identify m]
-  (loop [loc (zip/next (p.zip/tree-zipper m))]
+  (loop [loc (zip/next (tree-zipper m))]
     (cond
       (zip/end? loc) (zip/root loc)
 
@@ -125,9 +100,9 @@
       :else (recur (zip/next loc)))))
 
 
-(defn- normalize2
+(defn- normalize
   [identify data]
-  (loop [loc (p.zip/tree-zipper data)
+  (loop [loc (tree-zipper data)
          normalized []]
     (if (zip/end? loc)
       normalized
@@ -154,12 +129,12 @@
   ([db data]
    (let [db-meta (meta db)
          identify (:db/ident db-meta default-ident)
-         initial-entities (normalize2 identify data)]
+         initial-entities (normalize identify data)]
      (loop [entities initial-entities
             db' (if (entity-map? identify data)
                   db
                   ;; capture top-level aliases
-                  (merge db (replace-all-nested-entities identify data)))]
+                  (merge db (normalized-map identify data)))]
        (if-some [entity (first entities)]
          (recur
           (rest entities)
