@@ -1,6 +1,6 @@
 (ns pyramid.query-test
   (:require
-   [pyramid.query :as a.q :refer [q]]
+   [pyramid.query :as p.q :refer [q]]
    [clojure.test :as t]))
 
 

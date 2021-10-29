@@ -86,3 +86,12 @@
     :where
     [?e :friend/list ^:many ?v]]
   animorphs-3))
+
+
+(p.q/q
+ '[:find ?name ?best-friend
+   :where
+   [?e :friend/best ?bf]
+   [?e :person/name ?name]
+   [?bf :person/name ?best-friend]]
+ animorphs-3)

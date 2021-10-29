@@ -125,7 +125,7 @@ Example:
 ;;     :species {:andalites [[:person/id 5]]}}
 ```
 
-### Querying
+### Pull queries
 
 This library implements a fast EQL engine for Clojure data.
 
@@ -215,6 +215,27 @@ Marco's best friend:
 (p/pull animorphs-3 [{[:person/id 1] [:person/name
                                       {:friend/best [:person/name]}]}])
 ;; => {[:person/id 1] {:person/name "Marco", :friend/best #:person{:name "Jake"}}}
+```
+
+## Datalog queries
+
+The latest version of pyramid includes an experimental datomic/datascript-style
+query engine in `pyramid.query`. It is not production ready, but is good enough
+to explore a pyramid db for developer inspection and troubleshooting.
+
+
+```clojure
+(require '[pyramid.query :refer [q]])
+
+
+;; find the names of people with best friends, and their best friends' name
+(q [:find ?name ?best-friend
+    :where
+    [?e :friend/best ?bf]
+    [?e :person/name ?name]
+    [?bf :person/name ?best-friend]]
+   animorphs-3)
+;; => (["Marco" "Jake"] ["Jake" "Marco"])
 ```
 
 ## Features
