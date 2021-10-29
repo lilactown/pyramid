@@ -25,7 +25,10 @@ map and execute an EQL query on it, returning the result.
 
 ## Project status
 
-While feature complete, it has not been used in production yet.
+Pyramid has been used in production and it's core API is very stable.
+
+Experiments are still on going in `pyramid.query` to provide datomic-style datalog
+query capabilities for maps.
 
 ## Usage
 
