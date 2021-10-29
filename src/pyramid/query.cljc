@@ -1,4 +1,7 @@
 (ns pyramid.query
+  "Experimental!
+
+  A datalog query engine for normalized maps in the pyramid.core/db fashion"
   (:require
    [clojure.string :as string]))
 
