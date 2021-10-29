@@ -51,14 +51,14 @@
        (some? (lookup-ref-of identify x))))
 
 
-(defn make-tree-node
+(defn- make-tree-node
   [node children]
   (if (map-entry? node)
     (into [] children)
     (into (empty node) children)))
 
 
-(defn tree-zipper
+(defn- tree-zipper
   [tree]
   (zip/zipper coll? seq make-tree-node tree))
 
