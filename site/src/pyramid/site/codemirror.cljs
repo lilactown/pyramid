@@ -1,4 +1,4 @@
-(ns autonormal.site.codemirror
+(ns pyramid.site.codemirror
   (:require
    ["@codemirror/closebrackets" :refer [closeBrackets]]
    ["@codemirror/fold" :as fold]

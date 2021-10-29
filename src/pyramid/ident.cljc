@@ -1,4 +1,4 @@
-(ns autonormal.ident
+(ns pyramid.ident
   "Tools for identifying entity maps & creating ident functions.
 
   An 'ident function' is a function that takes a map and returns a tuple

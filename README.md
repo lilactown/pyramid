@@ -1,6 +1,9 @@
-# autonormal
+# pyramid
 
-[![Clojars Project](https://img.shields.io/clojars/v/lilactown/autonormal.svg)](https://clojars.org/lilactown/autonormal) [![cljdoc badge](https://cljdoc.org/badge/lilactown/autonormal)](https://cljdoc.org/d/lilactown/autonormal/CURRENT)
+(Formerly called `autonormal`)
+
+
+[![Clojars Project](https://img.shields.io/clojars/v/town.lilac/pyramid.svg)](https://clojars.org/town.lilac/pyramid) [![cljdoc badge](https://cljdoc.org/badge/lilactown/autonormal)](https://cljdoc.org/d/lilactown/autonormal/CURRENT)
 
 
 A library for storing graph data in a Clojure map that automatically
@@ -14,10 +17,10 @@ The primary use case this library was developed for was to act as a client side
 cache for [pathom](https://github.com/wilkerlucio/pathom) APIs. However, you can imagine any time you might reach for
 [DataScript](https://github.com/tonsky/datascript/) to store data as entities, but where you need fast nested /
 recursive querying of many attributes and don't need the full expressive power
-of datalog, as being a good use case for **autonormal**.
+of datalog, as being a good use case for **pyramid**.
 
 Another common use case is like a `select-keys` on steroids: the ability to do nested selections
-on complex maps with nested collections pops up very often in code. Autonormal can take any non-normalized
+on complex maps with nested collections pops up very often in code. Pyramid can take any non-normalized
 map and execute an EQL query on it, returning the result.
 
 ## Project status
@@ -31,12 +34,12 @@ While feature complete, it has not been used in production yet.
 A `db` is simply a map with a tabular structure of entities, potentially with
 references to other entities.
 
-**Autonormal** currently makes a default conventional assumption: your entities
+**Pyramid** currently makes a default conventional assumption: your entities
 are identified by a keyword whose name is `"id"`, e.g. `:id`, `:person/id`,
 `:my.corp.product/id`, etc.
 
 ```clojure
-(require '[autonormal.core :as a])
+(require '[pyramid.core :as p])
 
 (def data
   {:person/id 0 :person/name "Rachel"
@@ -46,8 +49,8 @@ are identified by a keyword whose name is `"id"`, e.g. `:id`, `:person/id`,
                  {:person/id 4 :person/name "Tobias"}
                  {:person/id 5 :person/name "Ax"}]})
 
-;; you can pass in multiple entities to instantiate a db, so `a/db` gets a vector
-(def animorphs (a/db [data]))
+;; you can pass in multiple entities to instantiate a db, so `p/db` gets a vector
+(def animorphs (p/db [data]))
 ;; => {:person/id {0 {:person/id 0 
 ;;                    :person/name "Rachel"
 ;;                    :friend/list [[:person/id 1]
@@ -77,7 +80,7 @@ However, if you want to accrete more potentially nested data, there's a helpful
 ```clojure
 ;; Marco and Jake are each others best friend
 (def animorphs-2
-  (a/add animorphs {:person/id 1
+  (p/add animorphs {:person/id 1
                     :friend/best {:person/id 3
                                   :friend/best {:person/id 1}}}))
 ;; => {:person/id {0 {:person/id 0 
@@ -113,7 +116,7 @@ Example:
 
 ```clojure
 (def animorphs-3
-  (a/add animorphs-2 {:species {:andalites [{:person/id 5
+  (p/add animorphs-2 {:species {:andalites [{:person/id 5
                                              :person/species "andalite"}]}}))
 ;; => {:person/id {,,,
 ;;                 5 {:person/id 5
@@ -127,7 +130,7 @@ Example:
 This library implements a fast EQL engine for Clojure data.
 
 ```clojure
-(a/pull animorphs-3 [[:person/id 1]])
+(p/pull animorphs-3 [[:person/id 1]])
 ;; => {[:person/id 1] {:person/id 1
 ;;                     :person/name "Macro"
 ;;                     :friend/best {:person/id 3}}}
@@ -137,7 +140,7 @@ You can join on idents and keys within entities, and it will resolve any
 references found in order to continue the query:
 
 ```clojure
-(a/pull animorphs-3 [{[:person/id 1] [:person/name
+(p/pull animorphs-3 [{[:person/id 1] [:person/name
                                       {:friend/best [:person/name]}]}])
 ;; => {[:person/id 1] {:person/name "Marco"
 ;;                     :friend/best {:person/name "Jake"}}}
@@ -146,7 +149,7 @@ references found in order to continue the query:
 Top-level keys in the db can also be joined on.
 
 ```clojure
-(a/pull animorphs-3 [{:species [{:andalites [:person/name]}]}])
+(p/pull animorphs-3 [{:species [{:andalites [:person/name]}]}])
 ;; => {:species {:andalites [{:person/name "Ax"}]}}
 ```
 
@@ -157,7 +160,7 @@ Recursion is supported:
                               :person/name
                               {:friend/list ...}]}])
 
-(= (-> (a/pull animorphs-3 query)
+(= (-> (p/pull animorphs-3 query)
        (get [:person/id 0]))
    data)
 ;; => true
@@ -184,9 +187,9 @@ Data that is `add`ed about an existing entity are merged with whatever is in the
 db. To replace an entity, `dissoc` it first:
 
 ```clojure
-(-> (a/db [{:person/id 0 :foo "bar"}])
+(-> (p/db [{:person/id 0 :foo "bar"}])
     (update :person/id dissoc 0)
-    (a/add {:person/id 0 :bar "baz"}))
+    (p/add {:person/id 0 :bar "baz"}))
 ;; => {:person/id {0 {:person/id 0 :bar "baz"}}}
 ```
 
@@ -200,7 +203,7 @@ To write an EQL query to get info about a specific entity, you can use an _ident
 to begin your query:
 
 ```clojure
-(a/pull animorphs-3 [[:person/id 1]])
+(p/pull animorphs-3 [[:person/id 1]])
 ;; => {[:person/id 1] 
 ;;     {:person/id 1, :person/name "Marco", :friend/best #:person{:id 3}}}
 ```
@@ -209,7 +212,7 @@ You can add to the query to resolve references and get information about, e.g.
 Marco's best friend:
 
 ```clojure
-(a/pull animorphs-3 [{[:person/id 1] [:person/name
+(p/pull animorphs-3 [{[:person/id 1] [:person/name
                                       {:friend/best [:person/name]}]}])
 ;; => {[:person/id 1] {:person/name "Marco", :friend/best #:person{:name "Jake"}}}
 ```

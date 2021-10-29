@@ -1,9 +1,20 @@
 {:paths ["src"]
- :deps {edn-query-language/eql {:mvn/version "1.0.1"}}
+ :deps {edn-query-language/eql {:mvn/version "1.0.1"}
+        fast-zip/fast-zip {:mvn/version "0.7.0"}}
  :aliases {:test
            {:extra-paths ["test"]
             :extra-deps
             {lambdaisland/kaocha {:mvn/version "1.0.732"}
              lambdaisland/kaocha-cljs {:mvn/version "0.0-71"}}}
            :dev {:extra-deps
-                 {com.wsscode/pathom {:mvn/version "2.3.1"}}}}}
+                 {com.wsscode/pathom {:mvn/version "2.3.1"}
+                  datascript/datascript {:mvn/version "1.2.5"}
+                  org.clojars.quoll/asami {:mvn/version "2.1.1"}
+                  meander/epsilon {:mvn/version "0.0.602"}}}
+           :benchmark {:extra-deps
+                       {criterium/criterium {:mvn/version "0.4.6"}}}
+           :profile {:extra-deps
+                     {com.clojure-goes-fast/clj-async-profiler {:mvn/version "0.5.1"}}
+                     :jvm-opts ["-Djdk.attach.allowAttachSelf"
+                                "-XX:+UnlockDiagnosticVMOptions"
+                                "-XX:+DebugNonSafepoints"]}}}

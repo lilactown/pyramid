@@ -1,7 +1,7 @@
-(ns autonormal.site.tree
+(ns pyramid.site.tree
   (:require
-   [autonormal.ident :as a.ident]
-   [autonormal.site.components :as c]
+   [pyramid.ident :as a.ident]
+   [pyramid.site.components :as c]
    [clojure.pprint :as pp]
    [helix.core :refer [defnc $]]
    [helix.core.alpha :as hx.alpha]

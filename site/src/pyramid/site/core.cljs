@@ -1,16 +1,17 @@
-(ns autonormal.site.core
+(ns pyramid.site.core
   (:require
    ["react-dom" :as rdom]
-   [autonormal.core :as a]
-   [autonormal.site.codemirror :as site.cm]
-   [autonormal.site.components :as c]
-   [autonormal.site.tree :as tree]
+   [pyramid.core :as a]
+   [pyramid.query :as a.query]
+   [pyramid.site.codemirror :as site.cm]
+   [pyramid.site.components :as c]
+   [pyramid.site.tree :as tree]
    [cljs.repl :as repl]
    [clojure.pprint :as pp]
    [clojure.string :as string]
    [clojure.tools.reader.edn :as edn]
    [goog.functions :as gfn]
-   [helix.core :refer [defnc $]]
+   [helix.core :refer [defnc $ <>]]
    [helix.core.alpha :as hx.alpha]
    [helix.dom :as d]
    [helix.hooks :as hooks]))
@@ -70,7 +71,7 @@
 
 
 (defnc query-explorer
-  [{:keys [db query set-query]}]
+  [{:keys [db query set-query query-type set-query-type]}]
   (let [[result-pending? start-result] (hx.alpha/use-transition)
         set-query (hooks/use-memo
                    :once
@@ -82,9 +83,10 @@
                                           {:default tagged-literal}
                                           query)]
                         (with-out-str
-                          (->> query-string
-                               (a/pull db)
-                               (pp/pprint))))
+                          (cond-> query-string
+                            (= :pull query-type) (->> (a/pull db))
+                            (= :datalog query-type) (a.query/q db)
+                            true (pp/pprint))))
                       (catch js/Error e
                         (with-out-str
                           (pp/pprint (cljs.repl/Error->map e)))))
@@ -96,7 +98,18 @@
       {:class "flex gap-2"
        :style {:height "75vh"}}
       ($ c/writable-pane
-         {:title "Query"
+         {:title (d/div
+                  {:class "flex items-center"}
+                  (d/div {:class "flex-1"} "Query")
+                  (d/div
+                   {:class "text-sm"}
+                   (d/select
+                    {:on-change #(-> (.. % -target -value)
+                                     (keyword)
+                                     (set-query-type))
+                     :value (name query-type)}
+                    (d/option {:value "pull"} "Pull")
+                    (d/option {:value "datalog"} "Datalog"))))
           :class ["flex-1 min-h-full overflow-scroll"]}
          ($ site.cm/editor
             {:initial-value query
@@ -173,6 +186,7 @@
   (let [[screen set-screen] (hooks/use-state :query)
         [db set-db] (hooks/use-state (a/db initial-data))
         [query set-query] (hooks/use-state "[]")
+        [query-type set-query-type] (hooks/use-state :pull)
         [nav-pending? start-nav] (hx.alpha/use-transition)]
     (d/div
      {:class "container mx-auto p-3"}
@@ -180,7 +194,7 @@
       {:class "pb-1 flex gap-1"}
       (d/h1
        {:class "text-xl ml-1 mr-8 my-2 border-solid border-blue-400"}
-       "Autonormal "
+       "Pyramid "
        (d/small {:class "italic"} "Playground"))
       ($ c/tab
          {:on-click (hx.alpha/with-transition
@@ -213,7 +227,9 @@
         :query ($ query-explorer
                   {:db db
                    :query query
-                   :set-query set-query})
+                   :set-query set-query
+                   :query-type query-type
+                   :set-query-type set-query-type})
         :db-explorer ($ database-explorer
                         {:db db})
         :db-editor ($ database-editor
