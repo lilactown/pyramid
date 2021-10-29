@@ -265,7 +265,8 @@ to explore a pyramid db for developer inspection and troubleshooting.
 - [DataScript](https://github.com/tonsky/datascript/) and derivatives
 - [Pathom](https://github.com/wilkerlucio/pathom)
 - [juxt/pull](https://github.com/juxt/pull)
+- [ribelo/doxa](https://github.com/ribelo/doxa)
 
 ## Copyright
 
-Copyright © 2020 Will Acton. Distributed under the EPL 2.0.
+Copyright © 2021 Will Acton. Distributed under the EPL 2.0.
