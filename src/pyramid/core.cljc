@@ -55,7 +55,9 @@
   [node children]
   (if (map-entry? node)
     (into [] children)
-    (into (empty node) children)))
+    (into (empty node) (if (list? node)
+                         (reverse children) ; grumble
+                         children))))
 
 
 (defn- tree-zipper
