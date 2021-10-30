@@ -1,8 +1,15 @@
 # CHANGELOG.md
 
+## 3.1.4
+
+### Fixed
+
+ - Fixed a bug in adding data where joins with params whose keys look like an entity
+ was being replaced with a ref incorrectly
+
 ## 3.1.3
 
-## Fixed
+### Fixed
 
 - Fixed a bug in adding data where lists (such as joins with params) got reversed
 
