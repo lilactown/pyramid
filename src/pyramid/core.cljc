@@ -20,7 +20,6 @@
   (:require
    [pyramid.ident :as ident]
    [pyramid.pull :as pull]
-   [fast-zip.core :as zip]
    [clojure.set]
    [edn-query-language.core :as eql]))
 
@@ -51,52 +50,63 @@
        (some? (lookup-ref-of identify x))))
 
 
-(defn- make-tree-node
-  [node children]
-  (if (map-entry? node)
-    (into [] children)
-    (into (empty node) (if (list? node)
-                         (reverse children) ; grumble
-                         children))))
+(defn- replace-all-nested-entities
+  [identify v]
+  (cond
+    (entity-map? identify v)
+    (lookup-ref-of identify v)
 
+    (map? v) ;; map not an entity
+    (into
+     (empty v)
+     (map
+      (juxt first
+            (comp #(replace-all-nested-entities identify %) second)))
+     v)
 
-(defn- tree-zipper
-  [tree]
-  (zip/zipper coll? seq make-tree-node tree))
+    (and (coll? v) (every? #(entity-map? identify %) v))
+    (into (empty v) (map #(lookup-ref-of identify %)) v)
 
+    (coll? v)
+    (into (empty v) (map #(replace-all-nested-entities identify %)) v)
 
-(defn- normalized-map
-  [identify m]
-  (loop [loc (zip/next (tree-zipper m))]
-    (cond
-      (zip/end? loc) (zip/root loc)
-
-      (entity-map? identify (zip/node loc))
-      (recur
-       (zip/next
-        (zip/replace loc (lookup-ref-of identify (zip/node loc)))))
-
-      :else (recur (zip/next loc)))))
+    :else v))
 
 
 (defn- normalize
   [identify data]
-  (loop [loc (tree-zipper data)
+  (loop [kvs data
+         data data
+         queued []
          normalized []]
-    (if (zip/end? loc)
-      normalized
-      (let [node (zip/node loc)]
-        (if (entity-map? identify node)
-          (recur
-           (zip/next loc)
-           (conj normalized (normalized-map identify node)))
+    (if-some [[k v] (first kvs)]
+      (recur
+       ;; move on to the next key
+       (rest kvs)
+       ;; update our data with lookup-refs
+       (assoc data k (replace-all-nested-entities identify v))
+       ;; add potential entity v to the queue
+       (cond
+         (map? v)
+         (conj queued v)
 
-          (recur (zip/next loc) normalized))))))
+         (and (coll? v) (every? #(entity-map? identify %) v))
+         (apply conj queued v)
 
-
-#_(normalize2 default-ident {:foo "bar" :baz "jkl"})
-
-#_(normalize2 default-ident {:foo/id "bar" :children [{:foo/id "bar"} {:foo/id "baz"}]})
+         :else queued)
+       normalized)
+      (if (empty? queued)
+        ;; nothing left to do, return all normalized entities
+        (if (entity-map? identify data)
+          (conj normalized data)
+          normalized)
+        (recur
+         (first queued)
+         (first queued)
+         (rest queued)
+         (if (entity-map? identify data)
+           (conj normalized data)
+           normalized))))))
 
 
 (defn add-report
@@ -113,7 +123,7 @@
             db' (if (entity-map? identify data)
                   db
                   ;; capture top-level aliases
-                  (merge db (normalized-map identify data)))]
+                  (merge db (replace-all-nested-entities identify data)))]
        (if-some [entity (first entities)]
          (recur
           (rest entities)

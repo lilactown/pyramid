@@ -227,10 +227,18 @@
 
   (t/testing "includes params"
     (t/is (= #:people{:all [#:person{:name "Bob", :id 1}]}
-             (p/pull (assoc db '(:people/all {:with "params"})
-                            [[:person/id 1]]) ;; just bob
+             (p/pull (-> db
+                         (p/add {'(:people/all {:with "params"}) [[:person/id 1]]}))
                      '[{(:people/all {:with "params"})
                         [:person/name :person/id]}])))
+    (t/is (= '{:person/foo {:person/id 1
+                            :person/name "Bob"}}
+             (p/pull (-> db
+                         (p/add {'(:person/foo {:person/id 2})
+                                 {:person/id 1}}))
+                     '[{(:person/foo {:person/id 2})
+                        [:person/name :person/id]}]))
+          "params that include an entity-looking thing should not be normalized")
     (t/is (= {}
              (p/pull db '[([:person/id 1] {:with "params"})])))
     (t/is (= {}
