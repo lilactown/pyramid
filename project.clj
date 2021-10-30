@@ -1,4 +1,4 @@
-(defproject town.lilac/pyramid "3.1.2"
+(defproject town.lilac/pyramid "3.1.3"
   :description "A library for storing and querying graph data in a Clojure map"
   :url "https://github.com/lilactown/pyramid"
   :scm {:name "git" :url "https://github.com/lilactown/pyramid"}

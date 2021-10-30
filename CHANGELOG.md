@@ -1,5 +1,18 @@
 # CHANGELOG.md
 
+## 3.1.3
+
+## Fixed
+
+- Fixed a bug in adding data where lists (such as joins with params) got reversed
+
+
+## 3.0.0 to 3.1.2
+
+Renamed to pyramid.
+Experimental datalog-like query engine. 
+Internal refactor to use zippers.
+
 ## 2.0.0
 
 ### Breaking
