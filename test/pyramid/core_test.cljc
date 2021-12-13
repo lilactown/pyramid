@@ -35,7 +35,15 @@
            (p/db [{:person/id 0
                    :some-data {1 "hello"
                                3 "world"}}]))
-    "Map with numbers as keys")
+        "Map with numbers as keys")
+  (t/is (= {:a/id {1 {:a/id 1
+                      :b [{:c [:d/id 1]}]}}
+            :d/id {1 {:d/id 1
+                      :d/text "a"}}}
+           (p/db [{:a/id 1
+                 :b [{:c {:d/id 1
+                          :d/txt "a"}}]}]))
+        "Collections of non-entities still get normalized")
   (t/is (= {:person/id
             {123
              {:person/id 123,
