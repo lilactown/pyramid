@@ -10,3 +10,5 @@
 *.iml
 /site/public/css/app.compiled.css
 /site/.clj-kondo/.cache/
+/.clj-kondo/
+/.lsp/
