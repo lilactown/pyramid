@@ -109,28 +109,51 @@
            normalized))))))
 
 
-(defn add-report
-  "Takes a normalized map `db`, and some new `data`.
+;;
+;; normalize2
+;;
 
-  Returns a map containing keys:
-   :db - the data normalized and merged into `db`.
-   :entities - a set of entities found in `data`"
-  ([db data]
-   (let [db-meta (meta db)
-         identify (:db/ident db-meta default-ident)
-         initial-entities (normalize identify data)]
-     (loop [entities initial-entities
-            db' (if (entity-map? identify data)
-                  db
-                  ;; capture top-level aliases
-                  (merge db (replace-all-nested-entities identify data)))]
-       (if-some [entity (first entities)]
-         (recur
-          (rest entities)
-          (update-in db' (lookup-ref-of identify entity)
-                     merge entity))
-         {:entities (set (map #(lookup-ref-of identify %) initial-entities))
-          :db db'})))))
+
+(defn- map-vals
+  [f m]
+  (with-meta
+    (persistent!
+     (reduce-kv
+      (fn [m' k v]
+        (assoc! m' k (f v)))
+      (transient {})
+      m))
+    (meta m)))
+
+
+(defn add-report
+  [db data]
+  (let [identify (:db/ident (meta db) default-ident)
+        data-entity? (entity-map? identify data)
+        *db (volatile! db)
+        *entities (volatile! #{})]
+    (letfn [(process! [v]
+              (cond
+                (map? v) (let [processed (map-vals process! v)
+                               lookup-ref (lookup-ref-of identify v)]
+                           (if (some? lookup-ref)
+                             (do
+                               (vswap! *db update-in lookup-ref merge processed)
+                               (vswap! *entities conj lookup-ref)
+                               ;; return lookup-ref for entities
+                               lookup-ref)
+                             ;; return the map for non-entities
+                             processed))
+
+                (coll? v) (into (empty v) (map process!) v)
+
+                :else v))]
+      (let [data' (process! data)]
+        (if data-entity?
+          {:entities @*entities
+           :db @*db}
+          {:entities @*entities
+           :db (merge @*db data') })))))
 
 
 (defn add
@@ -141,6 +164,9 @@
    (:db (add-report db data)))
   ([db data & more]
    (reduce add (add db data) more)))
+
+
+
 
 
 (defn db
