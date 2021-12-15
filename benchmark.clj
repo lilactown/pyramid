@@ -26,6 +26,27 @@
                         :best-friend {:person/id 123}}])))
 
 
+(c/quick-bench
+ (p/db [{:person/id 123
+         :person/name "Will"
+         :contact {:phone "000-000-0001"}
+         :best-friend
+         {:person/id 456
+          :person/name "Jose"
+          :account/email "asdf@jkl"}
+         :friends
+         [{:person/id 9001
+           :person/name "Georgia"}
+          {:person/id 456
+           :person/name "Jose"}
+          {:person/id 789
+           :person/name "Frank"}
+          {:person/id 1000
+           :person/name "Robert"}]}
+        {:person/id 456
+         :best-friend {:person/id 123}}]))
+
+
 (def big-data
   [{:foo/data
    (vec
