@@ -50,70 +50,6 @@
        (some? (lookup-ref-of identify x))))
 
 
-(defn- replace-all-nested-entities
-  [identify v]
-  (cond
-    (entity-map? identify v)
-    (lookup-ref-of identify v)
-
-    (map? v) ;; map not an entity
-    (into
-     (empty v)
-     (map
-      (juxt first
-            (comp #(replace-all-nested-entities identify %) second)))
-     v)
-
-    (and (coll? v) (every? #(entity-map? identify %) v))
-    (into (empty v) (map #(lookup-ref-of identify %)) v)
-
-    (coll? v)
-    (into (empty v) (map #(replace-all-nested-entities identify %)) v)
-
-    :else v))
-
-
-(defn- normalize
-  [identify data]
-  (loop [kvs data
-         data data
-         queued []
-         normalized []]
-    (if-some [[k v] (first kvs)]
-      (recur
-       ;; move on to the next key
-       (rest kvs)
-       ;; update our data with lookup-refs
-       (assoc data k (replace-all-nested-entities identify v))
-       ;; add potential entity v to the queue
-       (cond
-         (map? v)
-         (conj queued v)
-
-         (and (coll? v) (every? #(entity-map? identify %) v))
-         (apply conj queued v)
-
-         :else queued)
-       normalized)
-      (if (empty? queued)
-        ;; nothing left to do, return all normalized entities
-        (if (entity-map? identify data)
-          (conj normalized data)
-          normalized)
-        (recur
-         (first queued)
-         (first queued)
-         (rest queued)
-         (if (entity-map? identify data)
-           (conj normalized data)
-           normalized))))))
-
-
-;;
-;; normalize2
-;;
-
-
 (defn- map-vals
   [f m]
   (with-meta
@@ -133,6 +69,10 @@
         *db (volatile! db)
         *entities (volatile! #{})]
     (letfn [(process! [v]
+              ;; process! does a depth-first search and replace of all nested
+              ;; entities, adding them to the mutable db and set of entities
+              ;; on each visit. we ensure that only one pass needs to occur on
+              ;; each value
               (cond
                 (map? v) (let [processed (map-vals process! v)
                                lookup-ref (lookup-ref-of identify v)]
@@ -164,9 +104,6 @@
    (:db (add-report db data)))
   ([db data & more]
    (reduce add (add db data) more)))
-
-
-
 
 
 (defn db
