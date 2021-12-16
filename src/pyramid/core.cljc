@@ -65,9 +65,8 @@
 (defn add-report
   [db data]
   (let [identify (:db/ident (meta db) default-ident)
-        data-entity? (entity-map? identify data)
         *db (volatile! db)
-        *entities (volatile! #{})]
+        *entities (volatile! (transient #{}))]
     (letfn [(process! [v]
               ;; process! does a depth-first search and replace of all nested
               ;; entities, adding them to the mutable db and set of entities
@@ -79,7 +78,7 @@
                            (if (some? lookup-ref)
                              (do
                                (vswap! *db update-in lookup-ref merge processed)
-                               (vswap! *entities conj lookup-ref)
+                               (vswap! *entities conj! lookup-ref)
                                ;; return lookup-ref for entities
                                lookup-ref)
                              ;; return the map for non-entities
@@ -89,11 +88,10 @@
 
                 :else v))]
       (let [data' (process! data)]
-        (if data-entity?
-          {:entities @*entities
-           :db @*db}
-          {:entities @*entities
-           :db (merge @*db data') })))))
+        {:entities (persistent! @*entities)
+         :db (if (entity-map? identify data')
+               @*db
+               (merge @*db data'))}))))
 
 
 (defn add
