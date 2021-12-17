@@ -84,6 +84,7 @@
 (c/quick-bench (p/db [nested-data]))
 
 
+;; testing out different trampoline strategies
 (defn create [k i]
   (if (zero? i)
     (k)
@@ -96,8 +97,26 @@
 
 
 (def really-nested-data
-  (trampoline create (constantly {:id 0}) 60000))
+  {:foo (trampoline create (constantly {:id 0}) 50000) })
 
 
 (do (p/db [really-nested-data])
+    nil)
+
+
+(defn create2 [k i]
+  (if (pos? i)
+    (fn []
+      (k (create2
+          (fn [c]
+            {:id i
+             :child (c)})
+          (dec i))))
+    (constantly {:id i})))
+
+
+(do (trampoline
+     create2
+     (fn [c] {:id 5 :child (c)})
+     49200)
     nil)
