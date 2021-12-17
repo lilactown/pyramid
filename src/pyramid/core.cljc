@@ -50,46 +50,47 @@
        (some? (lookup-ref-of identify x))))
 
 
-(defn- map-vals
-  [f m]
-  (with-meta
-    (persistent!
-     (reduce-kv
-      (fn [m' k v]
-        (assoc! m' k (f v)))
-      (transient {})
-      m))
-    (meta m)))
-
-
 (defn add-report
   [db data]
   (let [identify (:db/ident (meta db) default-ident)
         *db (volatile! db)
         *entities (volatile! (transient #{}))]
-    (letfn [(process! [v]
+    (letfn [(process! [k v]
               (cond
-                (map? v) (fn []
-                           (let [result (map-vals
-                                         #(trampoline
-                                           process!
-                                           %)
-                                         v)
-                                 lookup-ref (lookup-ref-of identify v)]
-                             (if (some? lookup-ref)
-                               (do
-                                 (vswap! *db update-in lookup-ref merge result)
-                                 (vswap! *entities conj! lookup-ref)
-                                 lookup-ref)
-                               result)))
-                (coll? v) (fn []
-                            (into
-                             (empty v)
-                             (map #(trampoline process! %))
-                             v))
+                (map? v) (process-map! k v)
 
-                :else (constantly v)))]
-      (let [data' (trampoline process! data)]
+                (coll? v) (process-coll! k v)
+
+                :else #(k v)))
+
+            (process-map! [k m]
+              (fn process-map-loop!
+                ([] (process-map-loop! {} m))
+                ([m' map-kvs]
+                 (if-let [[mk mv] (first map-kvs)]
+                   #(process!
+                     (fn [v]
+                       (process-map-loop! (assoc m' mk v) (rest map-kvs)))
+                     mv)
+                   ;; use m here to get lookup-ref to ensure we get correct meta
+                   (if-some [lookup-ref (lookup-ref-of identify m)]
+                     (do
+                       (vswap! *db update-in lookup-ref merge m')
+                       (vswap! *entities conj! lookup-ref)
+                       #(k lookup-ref))
+                     #(k (with-meta m' (meta m))))))))
+
+            (process-coll! [k c]
+              (fn process-coll-loop!
+                ([] (process-coll-loop! (empty c) c))
+                ([c' xs]
+                 (if-let [x (first xs)]
+                   #(process!
+                     (fn [v]
+                       (process-coll-loop! (conj c' v) (rest xs)))
+                     x)
+                   #(k c')))))]
+      (let [data' (trampoline process! identity data)]
         {:entities (persistent! @*entities)
          :db (if (entity-map? identify data)
                @*db
