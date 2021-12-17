@@ -67,32 +67,29 @@
   (let [identify (:db/ident (meta db) default-ident)
         *db (volatile! db)
         *entities (volatile! (transient #{}))]
-    (letfn [(process! [k v]
+    (letfn [(process! [v]
               (cond
                 (map? v) (fn []
                            (let [result (map-vals
                                          #(trampoline
                                            process!
-                                           (fn [c] (c))
                                            %)
                                          v)
                                  lookup-ref (lookup-ref-of identify v)]
-                             (k
-                              #(if (some? lookup-ref)
-                                 (do
-                                   (vswap! *db update-in lookup-ref merge result)
-                                   (vswap! *entities conj! lookup-ref)
-                                   lookup-ref)
-                                 result))))
+                             (if (some? lookup-ref)
+                               (do
+                                 (vswap! *db update-in lookup-ref merge result)
+                                 (vswap! *entities conj! lookup-ref)
+                                 lookup-ref)
+                               result)))
                 (coll? v) (fn []
-                            (k (fn []
-                                 (into
-                                  (empty v)
-                                  (map #(trampoline process! (fn [c] (c)) %))
-                                  v))))
+                            (into
+                             (empty v)
+                             (map #(trampoline process! %))
+                             v))
 
-                :else #(k (constantly v))))]
-      (let [data' (trampoline process! (fn [c] (c)) data)]
+                :else (constantly v)))]
+      (let [data' (trampoline process! data)]
         {:entities (persistent! @*entities)
          :db (if (entity-map? identify data)
                @*db
