@@ -65,31 +65,31 @@
 
             (process-map! [k m]
               (fn process-map-loop!
-                ([] (process-map-loop! {} m))
+                ([] (process-map-loop! (transient {}) m))
                 ([m' map-kvs]
                  (if-let [[mk mv] (first map-kvs)]
                    #(process!
                      (fn [v]
-                       (process-map-loop! (assoc m' mk v) (rest map-kvs)))
+                       (process-map-loop! (assoc! m' mk v) (rest map-kvs)))
                      mv)
                    ;; use m here to get lookup-ref to ensure we get correct meta
                    (if-some [lookup-ref (lookup-ref-of identify m)]
                      (do
-                       (vswap! *db update-in lookup-ref merge m')
+                       (vswap! *db update-in lookup-ref merge (persistent! m'))
                        (vswap! *entities conj! lookup-ref)
                        #(k lookup-ref))
-                     #(k (with-meta m' (meta m))))))))
+                     #(k (with-meta (persistent! m') (meta m))))))))
 
             (process-coll! [k c]
               (fn process-coll-loop!
-                ([] (process-coll-loop! (empty c) c))
+                ([] (process-coll-loop! (transient (empty c)) c))
                 ([c' xs]
                  (if-let [x (first xs)]
                    #(process!
                      (fn [v]
-                       (process-coll-loop! (conj c' v) (rest xs)))
+                       (process-coll-loop! (conj! c' v) (rest xs)))
                      x)
-                   #(k c')))))]
+                   #(k (persistent! c'))))))]
       (let [data' (trampoline process! identity data)]
         {:entities (persistent! @*entities)
          :db (if (entity-map? identify data)
