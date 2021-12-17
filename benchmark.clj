@@ -62,3 +62,42 @@
 (prof/profile
  (dotimes [i 1000]
    (p/db big-data)))
+
+
+;; this throws w/ StackOverflow on my computer when running p/db
+;; numbers 10000 and up throw when generating the tree
+(def limit 7946)
+
+(def nested-data
+  (letfn [(create [i]
+            (if (zero? i)
+              nil
+              {:id i
+               :child (create (dec i))}))]
+    {:foo (create limit) }))
+
+
+(do (p/db [nested-data])
+    nil)
+
+
+(c/quick-bench (p/db [nested-data]))
+
+
+(defn create [k i]
+  (if (zero? i)
+    (k)
+    (fn []
+      (create
+       (fn []
+         {:id i
+          :child (k)})
+       (dec i)))))
+
+
+(def really-nested-data
+  (trampoline create (constantly {:id 0}) 60000))
+
+
+(do (p/db [really-nested-data])
+    nil)
