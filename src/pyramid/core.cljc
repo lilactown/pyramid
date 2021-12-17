@@ -67,31 +67,43 @@
   (let [identify (:db/ident (meta db) default-ident)
         *db (volatile! db)
         *entities (volatile! (transient #{}))]
-    (letfn [(process! [v]
-              ;; process! does a depth-first search and replace of all nested
-              ;; entities, adding them to the mutable db and set of entities
-              ;; on each visit. we ensure that only one pass needs to occur on
-              ;; each value
+    (letfn [(process! [k v]
               (cond
-                (map? v) (let [processed (map-vals process! v)
-                               lookup-ref (lookup-ref-of identify v)]
-                           (if (some? lookup-ref)
-                             (do
-                               (vswap! *db update-in lookup-ref merge processed)
-                               (vswap! *entities conj! lookup-ref)
-                               ;; return lookup-ref for entities
-                               lookup-ref)
-                             ;; return the map for non-entities
-                             processed))
+                (map? v) (fn []
+                           (let [result (map-vals
+                                         #(trampoline
+                                           process!
+                                           (fn [c] (c))
+                                           %)
+                                         v)
+                                 lookup-ref (lookup-ref-of identify v)]
+                             (k
+                              #(if (some? lookup-ref)
+                                 (do
+                                   (vswap! *db update-in lookup-ref merge result)
+                                   (vswap! *entities conj! lookup-ref)
+                                   lookup-ref)
+                                 result))))
+                (coll? v) (fn []
+                            (k (fn []
+                                 (into
+                                  (empty v)
+                                  (map #(trampoline process! (fn [c] (c)) %))
+                                  v))))
 
-                (coll? v) (into (empty v) (map process!) v)
-
-                :else v))]
-      (let [data' (process! data)]
+                :else #(k (constantly v))))]
+      (let [data' (trampoline process! (fn [c] (c)) data)]
         {:entities (persistent! @*entities)
-         :db (if (entity-map? identify data')
+         :db (if (entity-map? identify data)
                @*db
                (merge @*db data'))}))))
+
+
+#_(add-report
+   {}
+   {:foo {:id 1
+          :child {:id 2}}
+    :bar {:baz {:id 3}}})
 
 
 (defn add
