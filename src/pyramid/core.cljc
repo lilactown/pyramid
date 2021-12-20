@@ -53,6 +53,7 @@
 (defn- replace-all-nested-entities
   [identify v]
   (cond
+    ;; Don't normalize records
     (record? v) v
 
     (entity-map? identify v)
@@ -89,6 +90,9 @@
        (assoc data k (replace-all-nested-entities identify v))
        ;; add potential entity v to the queue
        (cond
+         ;; Don't normalize records
+         (record? v) queued
+
          (map? v)
          (conj queued v)
 

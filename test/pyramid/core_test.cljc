@@ -4,6 +4,11 @@
    [pyramid.ident :as ident]
    [clojure.test :as t]))
 
+(defrecord TestFruitRecord [id name])
+
+(def test-banana
+  (TestFruitRecord. 100 "Banana"))
+
 
 (t/deftest normalization
   (t/is (= {:person/id {0 {:person/id 0}}}
@@ -36,6 +41,11 @@
                    :some-data {1 "hello"
                                3 "world"}}]))
         "Map with numbers as keys")
+  (t/is (= {:person/id {0 {:person/id 0
+                           :some-record test-banana}}}
+           (p/db [{:person/id 0
+                   :some-record test-banana}]))
+        "Map with record as value")
   (t/is (= {:a/id {1 {:a/id 1
                       :b [{:c [:d/id 1]}]}}
             :d/id {1 {:d/id 1
