@@ -53,6 +53,8 @@
 (defn- replace-all-nested-entities
   [identify v]
   (cond
+    (record? v) v
+
     (entity-map? identify v)
     (lookup-ref-of identify v)
 
