@@ -5,6 +5,9 @@
    [clj-async-profiler.core :as prof]))
 
 
+(prof/serve-files 8080)
+
+
 (prof/profile (dotimes [i 10000]
                 (p/db [{:person/id 123
                         :person/name "Will"
@@ -109,3 +112,6 @@
 
 (c/quick-bench (p/db [really-nested-data]))
 
+
+(prof/profile (dotimes [i 1000]
+                (p/db [really-nested-data])))
