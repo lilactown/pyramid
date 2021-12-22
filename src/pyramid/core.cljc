@@ -18,6 +18,7 @@
   To get meta-information about what entities were added or queried, use the
   `add-report` and `pull-report` functions."
   (:require
+   [cascade.walk :as w]
    [pyramid.ident :as ident]
    [pyramid.pull :as pull]
    [clojure.set]
@@ -50,58 +51,51 @@
        (some? (lookup-ref-of identify x))))
 
 
+(defn- map-entry
+  [mk mv]
+  #?(:clj (clojure.lang.MapEntry/create mk mv)
+     :cljs (cljs.core/MapEntry. mk mv nil)))
+
+
 (defn add-report
   [db data]
   (let [identify (:db/ident (meta db) default-ident)
         *db (volatile! db)
-        *entities (volatile! (transient #{}))]
-    (letfn [(process! [k v]
-              (cond
-                (map? v) (process-map! k v)
-
-                (coll? v) (process-coll! k v)
-
-                :else #(k v)))
-
-            (process-map! [k m]
-              (fn process-map-loop!
-                ([] (process-map-loop! (transient {}) m))
-                ([m' map-kvs]
-                 (if-let [[mk mv] (first map-kvs)]
-                   #(process!
-                     (fn [v]
-                       (process-map-loop! (assoc! m' mk v) (rest map-kvs)))
-                     mv)
-                   ;; use m here to get lookup-ref to ensure we get correct meta
-                   (if-some [lookup-ref (lookup-ref-of identify m)]
-                     (do
-                       (vswap! *db update-in lookup-ref merge (persistent! m'))
-                       (vswap! *entities conj! lookup-ref)
-                       #(k lookup-ref))
-                     #(k (with-meta (persistent! m') (meta m))))))))
-
-            (process-coll! [k c]
-              (fn process-coll-loop!
-                ([] (process-coll-loop! (transient (empty c)) c))
-                ([c' xs]
-                 (if-let [x (first xs)]
-                   #(process!
-                     (fn [v]
-                       (process-coll-loop! (conj! c' v) (rest xs)))
-                     x)
-                   #(k (persistent! c'))))))]
-      (let [data' (trampoline process! identity data)]
-        {:entities (persistent! @*entities)
-         :db (if (entity-map? identify data)
-               @*db
-               (merge @*db data'))}))))
+        *entities (volatile! (transient #{}))
+        process! (fn process! [x]
+                   (if (map? x)
+                     (if-some [lookup-ref (lookup-ref-of identify x)]
+                       (do
+                         (vswap! *db update-in lookup-ref merge x)
+                         (vswap! *entities conj! lookup-ref)
+                         lookup-ref)
+                       x)
+                     x))
+        data' #_(trampoline
+               w/walk
+               (fn inner [k x]
+                 (if (map-entry? x)
+                   ;; skip processing map keys
+                   (w/walk
+                    inner
+                    k
+                    x)
+                   ;; regular c/postwalk
+                   (w/walk inner (comp k process!) x)))
+               process!
+               data)
+        (w/postwalk process! data)]
+    {:entities (persistent! @*entities)
+     :db (if (entity-map? identify data)
+           @*db
+           (merge @*db data'))}))
 
 
 #_(add-report
    {}
    {:foo {:id 1
-          :child {:id 2}}
-    :bar {:baz {:id 3}}})
+          '(:foo {:id "bar"}) {:id 2}}
+    :bar {:baz [ {:id 3} ]}})
 
 
 (defn add
