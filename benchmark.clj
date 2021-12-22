@@ -85,38 +85,27 @@
 
 
 ;; testing out different trampoline strategies
-(defn create [k i]
-  (if (zero? i)
-    (k)
-    (fn []
-      (create
-       (fn []
-         {:id i
-          :child (k)})
-       (dec i)))))
+(defn create [k depth]
+  (if (zero? depth)
+    (k {:id depth})
+    #(create
+      (fn [c]
+        (fn [] (k {:id depth :child c})))
+      (dec depth))))
 
 
 (def really-nested-data
-  {:foo (trampoline create (constantly {:id 0}) 50000) })
+  {:foo (trampoline create identity 50000) })
+
+
+(update-in really-nested-data
+           [:foo :child :child :child :child]
+           dissoc :child)
+;; => {:foo {:id 50000, :child {:id 49999, :child {:id 49998, :child {:id 49997, :child {:id 49996}}}}}}
 
 
 (do (p/db [really-nested-data])
     nil)
 
+(c/quick-bench (p/db [really-nested-data]))
 
-(defn create2 [k i]
-  (if (pos? i)
-    (fn []
-      (k (create2
-          (fn [c]
-            {:id i
-             :child (c)})
-          (dec i))))
-    (constantly {:id i})))
-
-
-(do (trampoline
-     create2
-     (fn [c] {:id 5 :child (c)})
-     49200)
-    nil)
