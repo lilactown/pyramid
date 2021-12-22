@@ -71,20 +71,23 @@
                          lookup-ref)
                        x)
                      x))
-        data' #_(trampoline
+        data' (trampoline
                w/walk
                (fn inner [k x]
                  (if (map-entry? x)
                    ;; skip processing map keys
                    (w/walk
                     inner
-                    k
-                    x)
-                   ;; regular c/postwalk
+                    (fn outer-map-entry
+                      [v]
+                      (k (map-entry
+                          (key x)
+                          (process! v))))
+                    (val x))
+                     ;; regular c/postwalk
                    (w/walk inner (comp k process!) x)))
                process!
-               data)
-        (w/postwalk process! data)]
+               data)]
     {:entities (persistent! @*entities)
      :db (if (entity-map? identify data)
            @*db
