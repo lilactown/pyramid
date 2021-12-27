@@ -18,7 +18,7 @@
   To get meta-information about what entities were added or queried, use the
   `add-report` and `pull-report` functions."
   (:require
-   [cascade.walk :as w]
+   [cascade.hike :as h]
    [pyramid.ident :as ident]
    [pyramid.pull :as pull]
    [clojure.set]
@@ -57,6 +57,44 @@
      :cljs (cljs.core/MapEntry. mk mv nil)))
 
 
+;;
+;; performance-specific code ahead
+;;
+
+
+#?(:clj
+   (defn- fast-assoc
+     {:inline
+      (fn [m k v]
+        (if (symbol? m)
+          `(.assoc ~(with-meta m {:tag "clojure.lang.Associative"}) ~k ~v)
+          `(let [m# ~m] (fast-assoc m# ~k ~v))))}
+     [^clojure.lang.Associative m k v]
+     (.assoc m k v)))
+
+
+(defn- update-ref
+  ([m [k ek] f x]
+   (let [em (get m k {})
+         v (get em ek)]
+     #?(:clj (fast-assoc m k
+                         (fast-assoc em ek
+                                     (f v x)))
+        :cljs (assoc m k
+                     (assoc em ek
+                            (f v x)))))))
+
+
+(defn- merge-entity
+  [e #?(:clj ^clojure.lang.IKVReduce m :cljs m)]
+  (if (nil? e)
+    m
+    (if (nil? m)
+      e
+      #?(:clj (.kvreduce m fast-assoc e)
+         :cljs (reduce m assoc e)))))
+
+
 (defn add-report
   [db data]
   (let [identify (:db/ident (meta db) default-ident)
@@ -66,17 +104,17 @@
                    (if (map? x)
                      (if-some [lookup-ref (lookup-ref-of identify x)]
                        (do
-                         (vswap! *db update-in lookup-ref merge x)
+                         (vswap! *db update-ref lookup-ref merge-entity x)
                          (vswap! *entities conj! lookup-ref)
                          lookup-ref)
                        x)
                      x))
         data' (trampoline
-               w/walk
+               h/walk
                (fn inner [k x]
                  (if (map-entry? x)
                    ;; skip processing map keys
-                   (w/walk
+                   (h/walk
                     inner
                     (fn outer-map-entry
                       [v]
@@ -85,7 +123,7 @@
                           (process! v))))
                     (val x))
                      ;; regular c/postwalk
-                   (w/walk inner (comp k process!) x)))
+                   (h/walk inner (comp k process!) x)))
                process!
                data)]
     {:entities (persistent! @*entities)
