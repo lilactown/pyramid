@@ -549,3 +549,6 @@
            (p/data->query {:a [{:b 42} {:c :d}]})))
   (t/is (= [{[:a 42] [:b]}]
            (p/data->query {[:a 42] {:b 33}}))))
+
+(comment
+  (t/run-tests))
