@@ -86,13 +86,13 @@
 
 
 (defn- merge-entity
-  [e #?(:clj ^clojure.lang.IKVReduce m :cljs m)]
+  [e #?(:clj ^clojure.lang.IKVReduce m :cljs ^IKVReduce m)]
   (if (nil? e)
     m
     (if (nil? m)
       e
       #?(:clj (.kvreduce m fast-assoc e)
-         :cljs (reduce m assoc e)))))
+         :cljs (-kv-reduce m assoc e)))))
 
 
 (defn add-report
