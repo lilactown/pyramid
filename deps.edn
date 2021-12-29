@@ -1,6 +1,6 @@
 {:paths ["src"]
  :deps {edn-query-language/eql {:mvn/version "1.0.1"}
-        town.lilac/cascade {:local/root "../cascade"}}
+        town.lilac/cascade {:mvn/version "1.1.0"}}
  :aliases {:test
            {:extra-paths ["test"]
             :extra-deps
