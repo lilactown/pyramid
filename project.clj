@@ -5,7 +5,8 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v20.html"}
   :source-paths ["src"]
-  :dependencies [[edn-query-language/eql "1.0.1"]]
+  :dependencies [[edn-query-language/eql "1.0.1"]
+                 [town.lilac/cascade "1.1.0"]]
   :deploy-repositories [["snapshots" {:sign-releases false
                                       :url "https://clojars.org"
                                       :creds :gpg}]])
