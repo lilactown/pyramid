@@ -95,7 +95,15 @@
          :cljs (-kv-reduce m assoc e)))))
 
 
-(defn add-report
+(defn add-report-thunkable
+  "Takes a normalized map `db` and some new `data`.
+  Returns a 0-arity function (thunk) which, when called, will return either
+  another thunk or a map containing the keys:
+  - :db - the data normalized and merged into `db`
+  - :entities - a set of entities found in `data`
+
+  Each thunk should be called to continue the process until the result is
+  returned. See `clojure.core/trampoline`."
   [db data]
   (let [identify (:db/ident (meta db) default-ident)
         *db (volatile! db)
@@ -108,28 +116,41 @@
                          (vswap! *entities conj! lookup-ref)
                          lookup-ref)
                        x)
-                     x))
-        data' (trampoline
-               h/walk
-               (fn inner [k x]
-                 (if (map-entry? x)
-                   ;; skip processing map keys
-                   (h/walk
-                    inner
-                    (fn outer-map-entry
-                      [v]
-                      (k (map-entry
-                          (key x)
-                          (process! v))))
-                    (val x))
-                     ;; regular c/postwalk
-                   (h/walk inner (comp k process!) x)))
-               process!
-               data)]
-    {:entities (persistent! @*entities)
-     :db (if (entity-map? identify data)
-           @*db
-           (merge @*db data'))}))
+                     x))]
+    (h/walk
+     (fn inner [k x]
+       (if (map-entry? x)
+         ;; skip processing map keys
+         (h/walk
+          inner
+          (fn outer-map-entry
+            [v]
+            (k (map-entry
+                (key x)
+                (process! v))))
+          (val x))
+         ;; regular c/postwalk
+         (h/walk inner (comp k process!) x)))
+     ;; we've traversed all other elements, now process the top-level map
+     ;; and return the results.
+     (fn outer [d]
+       (let [data' (process! d)]
+         {:entities (persistent! @*entities)
+          :db (if (entity-map? identify data)
+                @*db
+                ;; data isn't an entity map, so we assoc each key in data.
+                ;; they act like one-off custom indexes and can be pulled later
+                (merge @*db data'))}))
+     data)))
+
+
+(defn add-report
+  "Takes a normalized map `db`, and some new `data`.
+  Returns a map containing keys:
+   :db - the data normalized and merged into `db`.
+   :entities - a set of entities found in `data`"
+  [db data]
+  (trampoline add-report-thunkable db data))
 
 
 #_(add-report
