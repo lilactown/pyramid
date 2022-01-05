@@ -207,7 +207,7 @@
     :data - the result of the query
     :entities - a set of lookup refs that were visited during the query"
   [db query]
-  (pull/pull-report db query))
+  (trampoline pull/pull-report db query))
 
 
 (defn pull
