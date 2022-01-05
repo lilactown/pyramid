@@ -12,7 +12,8 @@
 (t/deftest many-entities
   (t/is (= (set entities)
            (:entities
-            (p/pull-report
+            (trampoline
+             p/pull-report
              {:id (into
                    {}
                    (map #(vector

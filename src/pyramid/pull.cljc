@@ -217,8 +217,7 @@
   [db query]
   (let [root (eql/query->ast query)
         entities (transient #{})]
-    (trampoline
-     cc/into
+    (cc/into
      (fn [data]
        {:data data
         :entities (persistent! entities)})
