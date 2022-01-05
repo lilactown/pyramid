@@ -95,8 +95,10 @@
          :cljs (-kv-reduce m assoc e)))))
 
 
-(defn add-report-thunkable
-  "Takes a normalized map `db` and some new `data`.
+(defn add-report*
+  "For normal usage, see `pyramid.core/add-report`.
+
+  Takes a normalized map `db` and some new `data`.
   Returns a 0-arity function (thunk) which, when called, will return either
   another thunk or a map containing the keys:
   - :db - the data normalized and merged into `db`
@@ -150,7 +152,7 @@
    :db - the data normalized and merged into `db`.
    :entities - a set of entities found in `data`"
   [db data]
-  (trampoline add-report-thunkable db data))
+  (trampoline add-report* db data))
 
 
 #_(add-report
