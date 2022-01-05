@@ -215,3 +215,27 @@
               (:children root))]
     {:data data
      :entities (persistent! entities)}))
+#_(eql/query->ast [{[:id 1] [:name]}])
+;; => {:type :root, :children [{:type :join, :dispatch-key :id, :key [:id 1], :query [:name], :children [{:type :prop, :dispatch-key :name, :key :name}]}]}
+
+
+(pull-report
+ {:id {1 {:id 1 :name "asdf" :children [[:id 2]]}
+       2 {:id 2 :name "jkl" :fav-flavor #{:chocolate}}}
+  :asdf [:id 1]
+  :jkl [:id 2]}
+ [{:asdf [:id :name {:children [:id :name]}]}])
+
+
+
+(eql/query->ast [#:people{:all [:person/name
+                                :person/id
+                                {:best-friend [:person/name]}]}])
+;; => {:type :root, :children [{:type :join, :dispatch-key :people/all, :key :people/all, :query [:person/name :person/id {:best-friend [:person/name]}], :children [{:type :prop, :dispatch-key :person/name, :key :person/name} {:type :prop, :dispatch-key :person/id, :key :person/id} {:type :join, :dispatch-key :best-friend, :key :best-friend, :query [:person/name], :children [{:type :prop, :dispatch-key :person/name, :key :person/name}]}]}]}
+
+
+(pull-report
+ {}
+ [#:people{:all [:person/name
+                 :person/id
+                 {:best-friend [:person/name]}]}])
