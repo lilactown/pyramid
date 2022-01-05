@@ -74,13 +74,13 @@
 
 
 (defn- visit
-  [db node {:keys [data parent entities]}]
+  [k db node {:keys [data parent entities]}]
   (case (:type node)
     :union
     (into
      {}
      (comp
-      (map #(visit db % {:data data :entities entities}))
+      (map #(visit k db % {:data data :entities entities}))
       (filter (comp not #{not-found} second)))
      (:children node))
 
@@ -90,7 +90,7 @@
         (into
          {}
          (comp
-          (map #(visit db % {:data data :entities entities}))
+          (map #(visit k db % {:data data :entities entities}))
           (filter (comp not #{not-found} second)))
          (:children node))
         nil))
@@ -175,9 +175,9 @@
            (map? data) (into
                         (with-meta {} (:meta node))
                         (comp
-                         (map #(visit db % {:data data
-                                            :parent new-parent
-                                            :entities entities}))
+                         (map #(visit identity db % {:data data
+                                                     :parent new-parent
+                                                     :entities entities}))
                          (filter seq)
                          (filter (comp not #{not-found} second)))
                         children)
@@ -189,9 +189,9 @@
                              (into
                               (with-meta (empty datum) (:meta node))
                               (comp
-                               (map #(visit db % {:data datum
-                                                  :parent new-parent
-                                                  :entities entities}))
+                               (map #(visit identity db % {:data datum
+                                                           :parent new-parent
+                                                           :entities entities}))
                                (filter (comp not #{not-found} second)))
                               children)))
                           (filter seq))
@@ -210,7 +210,7 @@
         data (into
               (with-meta {} (:meta root))
               (comp
-               (map #(visit db % {:data db :entities entities}))
+               (map #(visit identity db % {:data db :entities entities}))
                (filter (comp not #{not-found} second)))
               (:children root))]
     {:data data
