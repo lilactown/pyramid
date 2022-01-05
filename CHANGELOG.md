@@ -1,5 +1,16 @@
 # CHANGELOG.md
 
+## 3.2.0
+
+This update includes a significant rewrite of the normalization algorithm which
+in the real world results in a 50% reduction in time spent normalization and
+also supports arbitrary levels of nesting (up to computer memory limits).
+
+### Fixed
+
+- Maintain correct order of sequences of entities when being normalized
+- Fix #14: data loss in p/add with nested maps
+
 ## 3.1.4
 
 ### Fixed
