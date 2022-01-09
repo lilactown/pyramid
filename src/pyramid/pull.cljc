@@ -111,7 +111,7 @@
                         (conj! entities lookup-ref))
                       (into
                        (empty key-result)
-                       (map #(get-in db %))
+                       (map #(get-in db % (conj {} %)))
                        key-result))
 
                     :else key-result)
