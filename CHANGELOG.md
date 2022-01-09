@@ -1,5 +1,13 @@
 # CHANGELOG.md
 
+## UNRELEASED
+
+### Fixed
+
+- Fix error when a reference to an entity that doesn't exist in the db is queried.
+Now returns a map with the ident conj'd.
+
+
 ## 3.2.0
 
 This update includes a significant rewrite of the normalization algorithm which
