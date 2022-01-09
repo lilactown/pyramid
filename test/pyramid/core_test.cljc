@@ -299,7 +299,6 @@
                                  :chat.entry/timestamp "7890"}]}
                (p/pull db1 query)))))
 
-
   (t/testing "not found"
     (t/is (= {} (p/pull {} [:foo])))
     (t/is (= {} (p/pull {} [:foo :bar :baz])))
@@ -502,7 +501,26 @@
                                  :chat.entry/timestamp "7890"}]}
                result))
       (t/is (-> result meta :foo))
-      (t/is (every? #(:bar (meta %)) (get result :chat/entries))))))
+      (t/is (every? #(:bar (meta %)) (get result :chat/entries)))))
+  (t/testing "dangling entities"
+    (t/is (= {[:id 0] {:friends [{:id 1} {:id 2}]}}
+             (p/pull
+              {:id {0 {:id 0 :name "asdf" :friends [[:id 1] [:id 2]]}
+                    1 {:id 1 :name "jkl"}}}
+              [{[:id 0] [:friends]}]))
+          "dangling entity shows up in queries that do not select any props")
+    (t/is (= {[:id 0] {:friends [{:id 1, :name "jkl"} {:id 2}]}}
+             (p/pull
+              {:id {0 {:id 0 :name "asdf" :friends [[:id 1] [:id 2]]}
+                    1 {:id 1 :name "jkl"}}}
+              [{[:id 0] [{:friends [:id :name]}]}]))
+          "dangling entity shows up in queries that include ID")
+    (t/is (= {[:id 0] {:friends [{:name "jkl"}]}}
+             (p/pull
+              {:id {0 {:id 0 :name "asdf" :friends [[:id 1] [:id 2]]}
+                    1 {:id 1 :name "jkl"}}}
+              [{[:id 0] [{:friends [:name]}]}]))
+          "dangling entity does not show up in queries that do not include ID")))
 
 
 (t/deftest pull-report
