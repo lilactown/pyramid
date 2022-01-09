@@ -167,6 +167,24 @@
             {:person/id 0 :person/name "Gill"}))))
 
 
+(defrecord Thing [a b c])
+
+
+(t/deftest records
+  (t/is (= (->Thing "foo" "bar" "baz")
+           (-> [{:id 0
+                 :thing (->Thing "foo" "bar" "baz")}]
+               (p/db)
+               (get-in [:id 0 :thing]))))
+  (t/is (= (->Thing "foo" "bar" "baz")
+           (-> [{:id 0
+                 :thing (->Thing "foo" "bar" "baz")}]
+               (p/db)
+               (p/pull [{[:id 0] [:thing]}])
+               (get-in [[:id 0] :thing])))
+        "pulling a record returns the right type"))
+
+
 (def data
   {:people/all [{:person/id 0
                  :person/name "Alice"
