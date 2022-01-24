@@ -127,8 +127,8 @@
              (entities
               [o]
               (cond
-                (satisfies? IMap) (map-entities o)
-                (satisifes? ICollection o) (coll-entities o)
+                (satisfies? IMap o) (map-entities o)
+                (satisfies? ICollection o) (coll-entities o)
                 :else nil))]))
 
 
