@@ -4,6 +4,42 @@
    [edn-query-language.core :as eql]))
 
 
+(defprotocol IPullable
+  (resolve-ref [p lookup-ref] [p lookup-ref not-found]
+    "Given a ref [:key val], return the entity map it refers to"))
+
+
+(extend-protocol IPullable
+  #?(:clj clojure.lang.IPersistentMap :cljs IMap)
+  (resolve-ref
+    ([m lookup-ref] (get-in m lookup-ref))
+    ([m lookup-ref not-found]
+     (get-in m lookup-ref not-found)))
+
+  #?@(:cljs [IPersistentArrayMap
+             (resolve-ref ([m ref] (get-in m ref))
+                          ([m ref nf] (get-in m ref nf)))])
+  #?@(:cljs [IPersistentHashMap
+             (resolve-ref ([m ref] (get-in m ref))
+                          ([m ref nf] (get-in m ref nf)))])
+  #?@(:cljs [IPersistentTreeMap
+             (resolve-ref ([m ref] (get-in m ref))
+                          ([m ref nf] (get-in m ref nf)))])
+  #?@(:cljs [default
+             (resolve-ref
+              ([o ref]
+               (if (map? o)
+                 (get-in o ref)
+                 (throw (ex-info "no resolve-ref implementation found" {:value o}))))
+              ([o ref nf]
+               (if (map? o)
+                 (get-in o ref nf)
+                 (throw (ex-info "no resolve-ref implementation found" {:value o})))))]))
+
+
+(resolve-ref {:id {0 {:id 0}}} [:id 0])
+
+
 (def not-found ::not-found)
 
 
@@ -70,13 +106,13 @@
                                     ;; ident query
                                     (do
                                       (conj! entities key)
-                                      (get-in db key not-found))
+                                      (resolve-ref db key not-found))
                                     (get data key not-found))]
                        ;; lookup-ref result
                        (if (lookup-ref? result)
                          (do
                            (conj! entities result)
-                           (get-in db result not-found))
+                           (resolve-ref db result not-found))
                          (replace-all-nested-lookups result)))]
 
         (coll? data) (into
@@ -92,14 +128,14 @@
           key-result (if (lookup-ref? key)
                        (do
                          (conj! entities key)
-                         (get-in db key not-found))
+                         (resolve-ref db key not-found))
                        (get data key not-found))]
       [(:key node)
        (let [data (cond
                     (lookup-ref? key-result)
                     (do
                       (conj! entities key-result)
-                      (get-in db key-result))
+                      (resolve-ref db key-result))
 
                     ;; not a coll
                     (map? key-result)
@@ -111,7 +147,7 @@
                         (conj! entities lookup-ref))
                       (into
                        (empty key-result)
-                       (map #(get-in db % (conj {} %)))
+                       (map #(resolve-ref db % (conj {} %)))
                        key-result))
 
                     :else key-result)
