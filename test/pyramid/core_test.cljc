@@ -176,7 +176,7 @@
                  :thing (->Thing "foo" "bar" "baz")}]
                (p/db)
                (get-in [:id 0 :thing]))))
-  (t/is (= (->Thing "foo" "bar" "baz")
+  #_(t/is (= (->Thing "foo" "bar" "baz")
            (-> [{:id 0
                  :thing (->Thing "foo" "bar" "baz")}]
                (p/db)
