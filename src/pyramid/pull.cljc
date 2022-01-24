@@ -16,13 +16,13 @@
     ([m lookup-ref not-found]
      (get-in m lookup-ref not-found)))
 
-  #?@(:cljs [IPersistentArrayMap
+  #?@(:cljs [PersistentArrayMap
              (resolve-ref ([m ref] (get-in m ref))
                           ([m ref nf] (get-in m ref nf)))])
-  #?@(:cljs [IPersistentHashMap
+  #?@(:cljs [PersistentHashMap
              (resolve-ref ([m ref] (get-in m ref))
                           ([m ref nf] (get-in m ref nf)))])
-  #?@(:cljs [IPersistentTreeMap
+  #?@(:cljs [PersistentTreeMap
              (resolve-ref ([m ref] (get-in m ref))
                           ([m ref nf] (get-in m ref nf)))])
   #?@(:cljs [default
