@@ -37,9 +37,6 @@
                  (throw (ex-info "no resolve-ref implementation found" {:value o})))))]))
 
 
-(resolve-ref {:id {0 {:id 0}}} [:id 0])
-
-
 (def not-found ::not-found)
 
 
