@@ -1,28 +1,44 @@
 (ns pyramid.query-test
   (:require
+   [pyramid.core :as core]
    [pyramid.query :as p.q :refer [q]]
    [clojure.test :as t]))
 
 
-(def db {:person/id {"123" {:person/id "123"
-                            :person/name "foo"
-                            :person/best-friend [:person/id "789"]
-                            :person/friends [[:person/id "456"]
-                                             [:person/id "789"]]}
-                     "456" {:person/id "456"
-                            :person/name "bar"
-                            :person/friends [[:person/id "123"]
-                                             [:person/id "789"]]}
-                     "789" {:person/id "789"
-                            :person/name "baz"
-                            :person/friends [[:person/id "123"]
-                                             [:person/id "456"]]}
-                     "1011" {:person/id "1011"}}
-         :person {:bar "baz"}
-         :asdf "jkl"})
+(def db
+  ^{`p.q/entities core/entities}
+  {:person/id {"123" {:person/id "123"
+                      :person/name "foo"
+                      :person/best-friend [:person/id "789"]
+                      :person/friends [[:person/id "456"]
+                                       [:person/id "789"]]}
+               "456" {:person/id "456"
+                      :person/name "bar"
+                      :person/friends [[:person/id "123"]
+                                       [:person/id "789"]]}
+               "789" {:person/id "789"
+                      :person/name "baz"
+                      :person/friends [[:person/id "123"]
+                                       [:person/id "456"]]}
+               "1011" {:person/id "1011"
+                       :meta {:asdf [{:jkl 42}
+                                     {:jkl 84}
+                                     {:jkl 128}]}}}
+   :person {:bar "baz"}
+   :asdf "jkl"})
 
 
 (t/deftest joins
+  (t/is (= '([42] [84] [128])
+           (q '[:find ?jkl
+                :where
+                [?e :person/id "1011"]
+                [?e :meta ?meta]
+                [?meta :asdf ^:many ?asdf]
+                [?asdf :jkl ?jkl]]
+              db))
+        "map entities")
+
   (t/is (= '(["123"] ["456"] ["789"] ["1011"])
            (q '[:find ?id
                 :where
@@ -110,3 +126,28 @@
                 [?e2 :person/name ?name2]]
               db))
         "cross product"))
+
+
+(t/deftest query-map
+  (t/is (= [[42]]
+           (q '[:find ?baz
+                :where
+                [[:foo] :bar ?bar]
+                [?bar :baz ?baz]]
+              {:foo {:bar {:baz 42}}})))
+  (t/is (= [[:foo {:bar {:baz {:asdf 42}}}]
+            [:bar {:baz {:asdf 42}}]
+            [:baz {:asdf 42}]
+            [:asdf 42]]
+           (q '[:find ?a ?v
+                :where
+                [?e ?a ?v]]
+              {:foo {:bar {:baz {:asdf 42}}}})))
+  (t/is (= [[{:asdf "jkl"}] [{:asdf "qwerty"}] [{:asdf "uiop"}]]
+           (q '[:find ?bar
+                :where
+                [[:foo] :bar ^:many ?bar]
+                [?bar ?a ?v]]
+              {:foo {:bar [{:asdf "jkl"}
+                           {:asdf "qwerty"}
+                           {:asdf "uiop"}]}}))))

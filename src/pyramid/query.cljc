@@ -94,23 +94,42 @@
   (and (symbol? x) (string/starts-with? (name x) "?")))
 
 
-
-
 (defn pattern
   [x]
   (if (variable? x) ? :v))
 
 
-(defn- idents
-  [db]
-  (->> db
-       (filter (comp map? val))
-       (mapcat
-        (fn [[k id->v]]
-          (->> id->v
-               (filter (comp map? val))
-               (map key)
-               (map #(vector k %)))))))
+(defprotocol IQueryable
+  :extend-via-metadata true
+  (entities [o] "Returns a seq of all entities which can be queried."))
+
+
+(defn- map-entities
+  [m]
+  (->> m
+       (tree-seq coll? #(if (map? %) (vals %) (seq %)))
+       (filter map?)))
+
+
+(defn- coll-entities
+  [c]
+  (mapcat #(when (satisfies? IQueryable %) (entities %)) c))
+
+
+(extend-protocol IQueryable
+  #?(:clj clojure.lang.IPersistentMap :cljs IMap)
+  (entities [m] (map-entities m))
+
+  #?(:clj clojure.lang.IPersistentCollection :cljs ICollection)
+  (entities [c] (coll-entities c))
+
+  #?@(:cljs [default
+             (entities
+              [o]
+              (cond
+                (satisfies? IMap) (map-entities o)
+                (satisifes? ICollection o) (coll-entities o)
+                :else nil))]))
 
 
 (defn- contains-in?
@@ -120,15 +139,35 @@
     (contains? (get-in m path) k)))
 
 
+(defn- resolve-entity
+  ([db e]
+   (if (map? e)
+     e
+     (get-in db e)))
+  ([db e a] (resolve-entity db e a nil))
+  ([db e a nf]
+   (if (map? e)
+     (get e a nf)
+     (get-in db (conj e a) nf))))
+
+
+(defn- entity-exists?
+  ([db e]
+   (or (map? e) (contains-in? db e)))
+  ([db e a]
+   (if (map? e)
+     (contains? e a)
+     (contains-in? db (conj e a)))))
+
+
 (defn- resolve-triple
   [db triple]
   (let [[e a v] triple
-        idents (idents db)]
+        entities (entities db)]
     #_(prn triple (map pattern triple))
-    ;; TODO handle multi cardinality values
     (case (map pattern triple)
       [:v :v :v]
-      (if (= v (get-in db (conj e a)))
+      (if (= v (resolve-entity db e a))
         [[]]
         [])
 
@@ -136,9 +175,9 @@
       (into
        []
        (comp
-        (filter #(= v (get-in db (conj % a) ::not-found)))
+        (filter #(= v (resolve-entity db % a ::not-found)))
         (map vector))
-       idents)
+       entities)
 
       [:v ? :v]
       (into
@@ -146,39 +185,39 @@
        (comp
         (filter #(= v (val %)))
         (map key))
-       (get-in db e))
+       (resolve-entity db e))
 
       [:v :v ?]
-      (if (contains-in? db (conj e a))
+      (if (entity-exists? db e a)
         (if (:many (meta v))
-          (map vector (get-in db (conj e a)))
-          [[(get-in db (conj e a))]])
+          (map vector (resolve-entity db e a))
+          [[(resolve-entity db e a)]])
         [])
 
       [? ? :v]
       (mapcat
-       (fn [ident]
-         (->> (get-in db ident)
+       (fn [entity]
+         (->> (resolve-entity db entity)
               (filter #(= v (val %)))
               (map (fn [entry]
-                     [ident (key entry)]))))
-       idents)
+                     [entity (key entry)]))))
+       entities)
 
       [? :v ?]
       (into
        []
        (comp
-        (filter #(contains-in? db (conj % a)))
+        (filter #(entity-exists? db % a))
         (if (:many (meta v))
           (mapcat
-           (fn [ident]
+           (fn [entity]
              (map
-              (fn [value] [ident value])
-              (get-in db (conj ident a)))))
+              (fn [value] [entity value])
+              (resolve-entity db entity a))))
           (map
-           (fn [ident]
-             [ident (get-in db (conj ident a))]))))
-       idents)
+           (fn [entity]
+             [entity (resolve-entity db entity a)]))))
+       entities)
 
       [:v ? ?]
       (if (:many (meta v))
@@ -188,23 +227,23 @@
           (fn [entry]
             (let [k (key entry)]
               (map #(vector k %) (val entry))))
-          (get-in db e)))
+          (resolve-entity db e)))
         (mapv
          (fn [entry]
            [(key entry) (val entry)])
-         (get-in db e)))
+         (resolve-entity db e)))
 
       [? ? ?]
       (if (:many (meta v))
-        (for [ident idents
-              :let [entity (get-in db ident)]
+        (for [entity-or-ident entities
+              :let [entity (resolve-entity db entity-or-ident)]
               entry entity
               values (val entry)]
-          [ident (key entry) values])
-        (for [ident idents
-              :let [entity (get-in db ident)]
+          [entity-or-ident (key entry) values])
+        (for [entity-or-ident entities
+              :let [entity (resolve-entity db entity-or-ident)]
               entry entity]
-          [ident (key entry) (val entry)])))))
+          [entity-or-ident (key entry) (val entry)])))))
 
 
 (comment
@@ -328,39 +367,35 @@
       {:pattern '[?e ?id]})]
    '[?e :foo/name ?name])
 
+  (map meta
+       (rewrite-and-resolve-triple
+        {:foo/id {1 {:foo/id 1
+                     :foo/name "bar"}
+                  2 {:foo/id 2
+                     :foo/name "baz"}}}
+        [(with-meta [[:foo/id 1] 1]
+           {:pattern '[?e ?id]})]
+        '[?e :foo/name ?name]))
 
-   (map meta
-   (rewrite-and-resolve-triple
-    {:foo/id {1 {:foo/id 1
-                 :foo/name "bar"}
-              2 {:foo/id 2
-                 :foo/name "baz"}}}
-    [(with-meta [[:foo/id 1] 1]
-       {:pattern '[?e ?id]})]
-    '[?e :foo/name ?name]))
+  (rewrite-and-resolve-triple
+   {:foo/id {"123" #:foo{:id "123", :bar "baz"}
+             "456" #:foo{:id "456", :bar "asdf"}
+             "789" #:foo{:id "456"}}
+    :foo {:bar "baz"}, :asdf "jkl"}
+   nil
+   '[?e :foo/id ?id])
 
-
-   (rewrite-and-resolve-triple
-    {:foo/id {"123" #:foo{:id "123", :bar "baz"}
-              "456" #:foo{:id "456", :bar "asdf"}
-              "789" #:foo{:id "456"}}
-     :foo {:bar "baz"}, :asdf "jkl"}
-    nil
-    '[?e :foo/id ?id])
-
-
-   (rewrite-and-resolve-triple
-    {:foo/id {"123" #:foo{:id "123", :bar "baz"}
-              "456" #:foo{:id "456", :bar "asdf"}
-              "789" #:foo{:id "456"}}, :foo {:bar "baz"}, :asdf "jkl"}
-    [(with-meta [[:foo/id "123"] "123"]
-       '{:pattern (?e ?id)})
-     (with-meta [[:foo/id "456"] "456"]
-       '{:pattern (?e ?id)})
-     (with-meta [[:foo/id "789"] "456"]
-       '{:pattern (?e ?id)})]
-    '[?e :foo/bar ?bar])
-  )
+  (rewrite-and-resolve-triple
+   {:foo/id {"123" #:foo{:id "123", :bar "baz"}
+             "456" #:foo{:id "456", :bar "asdf"}
+             "789" #:foo{:id "456"}}, :foo {:bar "baz"}, :asdf "jkl"}
+   [(with-meta [[:foo/id "123"] "123"]
+      '{:pattern (?e ?id)})
+    (with-meta [[:foo/id "456"] "456"]
+      '{:pattern (?e ?id)})
+    (with-meta [[:foo/id "789"] "456"]
+      '{:pattern (?e ?id)})]
+   '[?e :foo/bar ?bar]))
 
 
 (defn- project-results

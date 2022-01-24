@@ -21,6 +21,7 @@
    [cascade.hike :as h]
    [pyramid.ident :as ident]
    [pyramid.pull :as pull]
+   [pyramid.query :as query]
    [clojure.set]
    [edn-query-language.core :as eql]))
 
@@ -172,6 +173,16 @@
    (reduce add (add db data) more)))
 
 
+(defn entities
+  "Returns a lazy seq of all entity maps in the DB"
+  [db]
+  (let [identify (get (meta db) :db/ident default-ident)]
+    (->> (vals db) ; skip the first layer of table IDs
+         (mapcat #(when (satisfies? query/IQueryable %)
+                    (query/entities %)))
+         (filter identify))))
+
+
 (defn db
   "Takes an optional collection of `entities`.
 
@@ -182,7 +193,8 @@
   ([entities identify]
    (reduce
     add
-    (with-meta {} {:db/ident identify})
+    (with-meta {} {:db/ident identify
+                   `query/entities entities})
     entities)))
 
 
