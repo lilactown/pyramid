@@ -82,35 +82,39 @@
   (some #(when (datascript.db/is-attr? db (first %) :db/unique) %) m))
 
 
-(defn- resolve-attr [db a datoms descend?]
+(defn- resolve-attr [db a datoms]
   (if (datascript.db/multival? db a)
-    (if (and descend? (datascript.db/ref? db a))
-      (reduce #(conj %1 (ds-lookup-ref db (resolve-datascript-entity db (:v %2) false)))
+    (if (datascript.db/ref? db a)
+      (reduce #(conj %1 [:db/id (:v %2)])
               #{} datoms)
       (reduce #(conj %1 (:v %2)) #{} datoms))
-    (if (and descend? (datascript.db/ref? db a))
-      (ds-lookup-ref db (resolve-datascript-entity db (:v (first datoms)) false))
+    (if (datascript.db/ref? db a)
+      [:db/id (:v (first datoms))]
       (:v (first datoms)))))
 
 
 (defn resolve-datascript-entity
-  [db lookup-ref descend?]
-  (let [eid (datascript.db/entid db lookup-ref)
+  [db lookup-ref]
+  (let [eid (if (= :db/id (first lookup-ref))
+              (second lookup-ref)
+              (datascript.db/entid db lookup-ref))
         attrs (datascript.db/-search db [eid])]
     (into {}
           (for [attr (map second attrs)
-           :let [datoms (datascript.db/-search db [eid attr])]]
-            [attr (resolve-attr db attr datoms descend?)]))))
+                :let [datoms (datascript.db/-search db [eid attr])]]
+            [attr (resolve-attr db attr datoms)]))))
 
 
-(resolve-datascript-entity ds-animorphs [:person/id 1] true)
-;; => {:friend/best [:person/id 3], :person/id 1, :person/name "Marco"}
+(resolve-datascript-entity ds-animorphs [:person/id 1])
+;; => {:friend/best [:db/id 4], :person/id 1, :person/name "Marco"}
 
+(resolve-datascript-entity ds-animorphs [:db/id 2])
+;; => {:friend/best [:db/id 4], :person/id 1, :person/name "Marco"}
 
 (extend-protocol pull/IPullable
   datascript.db.DB
   (resolve-ref
-    ([db lookup-ref] (resolve-datascript-entity db lookup-ref true))
+    ([db lookup-ref] (resolve-datascript-entity db lookup-ref))
     ([db lookup-ref not-found]
      (or (pull/resolve-ref db lookup-ref) not-found))))
 
