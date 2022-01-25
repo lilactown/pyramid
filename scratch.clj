@@ -38,6 +38,10 @@
 
 (require '[datascript.core :as ds])
 
+(require '[datascript.db])
+
+(require '[pyramid.pull :as pull])
+
 
 (def ds-animorphs
   (-> {:person/id {:db/unique :db.unique/identity}
@@ -48,6 +52,75 @@
       (ds/db-with [data])
       (ds/db-with [data-2])
       (ds/db-with [data-3])))
+
+
+(-> (ds/entity ds-animorphs [:person/id 1])
+    (get :person/name))
+;; => "Marco"
+
+(-> (ds/entity ds-animorphs [:person/id 1])
+    (get :friend/best)
+    (get :person/name))
+;; => "Jake"
+
+
+(datascript.db/entid ds-animorphs [:person/id 1])
+;; => 2
+
+(datascript.db/-search ds-animorphs [(datascript.db/entid ds-animorphs [:person/id 1])])
+;; => (#datascript/Datom [2 :friend/best 4 536870914 true] #datascript/Datom [2 :person/id 1 536870913 true] #datascript/Datom [2 :person/name "Marco" 536870913 true])
+
+
+(ds/pull ds-animorphs '[*] [:person/id 1])
+
+
+(declare resolve-datascript-entity)
+
+
+(defn- ds-lookup-ref
+  [db m]
+  (some #(when (datascript.db/is-attr? db (first %) :db/unique) %) m))
+
+
+(defn- resolve-attr [db a datoms descend?]
+  (if (datascript.db/multival? db a)
+    (if (and descend? (datascript.db/ref? db a))
+      (reduce #(conj %1 (ds-lookup-ref db (resolve-datascript-entity db (:v %2) false)))
+              #{} datoms)
+      (reduce #(conj %1 (:v %2)) #{} datoms))
+    (if (and descend? (datascript.db/ref? db a))
+      (ds-lookup-ref db (resolve-datascript-entity db (:v (first datoms)) false))
+      (:v (first datoms)))))
+
+
+(defn resolve-datascript-entity
+  [db lookup-ref descend?]
+  (let [eid (datascript.db/entid db lookup-ref)
+        attrs (datascript.db/-search db [eid])]
+    (into {}
+          (for [attr (map second attrs)
+           :let [datoms (datascript.db/-search db [eid attr])]]
+            [attr (resolve-attr db attr datoms descend?)]))))
+
+
+(resolve-datascript-entity ds-animorphs [:person/id 1] true)
+;; => {:friend/best [:person/id 3], :person/id 1, :person/name "Marco"}
+
+
+(extend-protocol pull/IPullable
+  datascript.db.DB
+  (resolve-ref
+    ([db lookup-ref] (resolve-datascript-entity db lookup-ref true))
+    ([db lookup-ref not-found]
+     (or (pull/resolve-ref db lookup-ref) not-found))))
+
+
+(p/pull ds-animorphs [[:person/id 0]])
+;; => {[:person/id 0] {:friend/list #{#:person{:id 5} #:person{:id 1} #:person{:id 2} #:person{:id 3} #:person{:id 4}}, :person/id 0, :person/name "Rachel"}}
+
+(p/pull ds-animorphs [{[:person/id 1] [:person/name
+                                       {:friend/best [:person/name]}]}])
+;; => {[:person/id 1] {:person/name "Marco", :friend/best #:person{:name "Jake"}}}
 
 
 (def query-1
