@@ -72,14 +72,7 @@
 
 
 (ds/pull ds-animorphs '[*] [:person/id 1])
-
-
-(declare resolve-datascript-entity)
-
-
-(defn- ds-lookup-ref
-  [db m]
-  (some #(when (datascript.db/is-attr? db (first %) :db/unique) %) m))
+;; => {:db/id 2, :friend/best #:db{:id 4}, :person/id 1, :person/name "Marco"}
 
 
 (defn- resolve-attr [db a datoms]
