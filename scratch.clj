@@ -165,3 +165,89 @@
    [?e :person/name ?name]
    [?bf :person/name ?best-friend]]
  animorphs-3)
+
+
+(require '[asami.core :as a])
+
+
+(a/create-database "asami:mem://pyramid-example2")
+
+
+(def conn (a/connect "asami:mem://pyramid-example2"))
+
+
+(require '[asami.graph :as ag])
+
+
+(a/transact
+ conn {:tx-data
+       [(-> data
+            (assoc :db/id -1)
+            (update :friend/list
+                    (partial map-indexed #(assoc %2 :db/id (- -2 %1)))))
+        (-> data-2
+            (assoc :db/id -2)
+            (update :friend/best assoc :db/id -4))
+        (assoc-in data-3 [:species :andalites 0 :db/id] -6)]})
+
+(a/db conn)
+
+(ag/resolve-triple (a/graph (a/db conn)) '?e :person/id 0)
+;; => ([:tg/node-26575])
+
+(ag/resolve-triple (a/graph (a/db conn)) :tg/node-26575 '?a '?v)
+;; => ([:person/id 0] [:person/name "Rachel"] [:tg/owns :tg/node-26581] [:tg/owns :tg/node-26583] [:tg/owns :tg/node-26585] [:tg/owns :tg/node-26577] [:tg/owns :tg/node-26576] [:tg/owns :tg/node-26579] [:friend/list :tg/node-26576] [:db/ident :tg/node-26575] [:tg/entity true])
+
+(->> (ag/resolve-triple (a/graph (a/db conn)) :tg/node-26576 '?a '?v)
+     (filter #(= :tg/contains (first %)))
+     (map #(ag/resolve-triple
+            (a/graph (a/db conn))
+            (second %) '?a '?v)))
+
+(require '[clojure.string :as string])
+
+(defn- resolve-asami-node
+  [graph eid]
+  #_(prn eid)
+  (let [datoms (ag/resolve-triple graph eid '?a '?v)]
+    (cond
+      (some #(= :tg/contains (first %)) datoms)
+      (->> datoms
+           (keep #(when (= :tg/contains (first %))
+                    (second %)))
+           (map #(resolve-asami-node graph %)))
+
+      #_(some #(= [:tg/entity true] %) datoms)
+      :else
+      (into
+       {}
+       (comp
+        (remove #(= :tg/owns (first %)))
+        (map (fn [[k v]]
+               (if (and (keyword? v)
+                        (not= :db/ident k)
+                        (string/starts-with? (str v) ":tg/node-"))
+                 [k (resolve-asami-node graph v)]
+                 [k v]))))
+       datoms))))
+
+(defn resolve-asami-entity
+  [db lookup-ref]
+  (let [graph (a/graph db)
+        [[eid]] (ag/resolve-triple graph '?e (nth lookup-ref 0) (nth lookup-ref 1))
+        #_#_datoms (ag/resolve-triple graph eid '?a '?v)]
+    #_(into {} (remove #(= :tg/owns (first %))) datoms)
+    (resolve-asami-node graph eid)))
+
+(resolve-asami-entity (a/db conn) [:person/id 0])
+
+(a/q '[:find ?e
+       :where [?e :person/id 1]]
+     (a/db conn))
+
+
+(def kw->subs (atom {}))
+
+(defn reg-sub
+  [kw compute-fn]
+  (swap! kw->subs assoc kw (make-reaction (memoize compute-fn))))
