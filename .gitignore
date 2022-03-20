@@ -12,3 +12,4 @@
 /site/.clj-kondo/.cache/
 /.clj-kondo/
 /.lsp/
+/.log/
