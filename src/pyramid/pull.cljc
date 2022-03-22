@@ -150,7 +150,7 @@
                      (conj! entities lookup-ref))
                    (into
                     (empty key-result)
-                    (map #(resolve-ref db %))
+                    (map #(resolve-ref db % (conj {} %)))
                     key-result))
 
                  :else key-result)
