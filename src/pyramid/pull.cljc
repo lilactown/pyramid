@@ -55,23 +55,28 @@
 
 (defn- replace-all-nested-lookups
   "Converts all lookup-refs like [:foo \"bar\"] to maps {:foo \"bar\"}"
-  [x]
+  [k x]
   (cond
     (map? x)
-    (into
+    (cc/into
+     k
      {}
-     (map #(vector
-            (key %)
-            (replace-all-nested-lookups (val %))))
+     (cc/map (fn [k x]
+               (replace-all-nested-lookups
+                #(k (vector (key x) %))
+                (val x))))
      x)
 
     (lookup-ref? x)
-    (assoc {} (first x) (second x))
+    #(k (assoc {} (first x) (second x)))
 
     (coll? x)
-    (into (empty x) (map replace-all-nested-lookups) x)
+    (cc/into
+     k
+     (empty x)
+     (cc/map (fn [k x] (replace-all-nested-lookups k x))) x)
 
-    :else x))
+    :else #(k x)))
 
 
 (defn- visit
@@ -103,19 +108,20 @@
     :prop
     (let [key (node->key node)]
       (cond
-        (map? data) #(k [(:key node)
-                         (let [result (if (lookup-ref? key)
-                                    ;; ident query
-                                        (do
-                                          (conj! entities key)
-                                          (resolve-ref db key not-found))
-                                        (get data key not-found))]
-                       ;; lookup-ref result
-                           (if (lookup-ref? result)
-                             (do
-                               (conj! entities result)
-                               (resolve-ref db result not-found))
-                             (replace-all-nested-lookups result)))])
+        (map? data) (let [result (if (lookup-ref? key)
+                                   ;; ident query
+                                   (do
+                                     (conj! entities key)
+                                     (resolve-ref db key not-found))
+                                   (get data key not-found))]
+                           ;; lookup-ref result
+                      (if (lookup-ref? result)
+                        (do
+                          (conj! entities result)
+                          #(k [(:key node) (resolve-ref db result not-found)]))
+                        (replace-all-nested-lookups
+                         #(k [(:key node) %])
+                         result)))
 
         (coll? data) (cc/into
                       k
