@@ -2,6 +2,13 @@
 
 ## UNRELEASED
 
+### Added
+
+- Pull queries now use protocol `IPullable` to resolve entities, allowing
+  pyramid to query arbitrary data stores using EQL.
+- Datalog queries now use protocol `IQueryable` to get all entities from an
+  object, allowing pyramid to query arbitraty data stores in memory.
+
 ### Fixed
 
 - Fix error when a reference to an entity that doesn't exist in the db is queried.

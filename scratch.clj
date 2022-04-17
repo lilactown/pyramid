@@ -244,10 +244,3 @@
 (a/q '[:find ?e
        :where [?e :person/id 1]]
      (a/db conn))
-
-
-(def kw->subs (atom {}))
-
-(defn reg-sub
-  [kw compute-fn]
-  (swap! kw->subs assoc kw (make-reaction (memoize compute-fn))))
