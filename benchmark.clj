@@ -139,7 +139,12 @@
                                    :person/name
                                    {:friends [:person/id :person/name]}]}])
 
+(def query [{[:person/id 123] [:person/id
+                               :person/name
+                               {:friends [:person/id :person/name]}]}])
+
 (c/quick-bench
- (p/pull ppl-db [{[:person/id 123] [:person/id
-                                    :person/name
-                                    {:friends [:person/id :person/name]}]}]))
+ (p/pull ppl-db query))
+
+(prof/profile (dotimes [i 1000]
+                (p/pull ppl-db query)))
