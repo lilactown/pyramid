@@ -41,6 +41,11 @@
 (def not-found ::not-found)
 
 
+(defn- found?
+  [x]
+  (not (identical? not-found x)))
+
+
 (defn- lookup-ref?
   [x]
   (ident/ident? x))
@@ -89,7 +94,7 @@
      (comp
       (cc/map (fn [k x]
                 #(visit k db x {:data data :entities entities})))
-      (cc/filter (cc/cont-with (comp not #{not-found} second))))
+      (cc/filter (cc/cont-with (comp found? second))))
      (:children node))
 
     :union-entry
@@ -101,7 +106,7 @@
          (comp
           (cc/map (fn [k x]
                     #(visit k db x {:data data :entities entities})))
-          (cc/filter (cc/cont-with (comp not #{not-found} second))))
+          (cc/filter (cc/cont-with (comp found? second))))
          (:children node))
         #(k nil)))
 
@@ -129,7 +134,7 @@
                       (comp
                        (cc/map (cc/cont-with
                                 #(vector key (get % key not-found))))
-                       (cc/filter (cc/cont-with (comp not #{not-found} second))))
+                       (cc/filter (cc/cont-with (comp found? second))))
                       data)
         :else #(k nil)))
 
@@ -192,7 +197,7 @@
                                                :parent new-parent
                                                :entities entities})))
                       (cc/filter (cc/cont-with seq))
-                      (cc/filter (cc/cont-with (comp not #{not-found} second))))
+                      (cc/filter (cc/cont-with (comp found? second))))
                      children)
         (coll? data) (cc/into
                       (comp k #(vector (:key node) %))
@@ -208,7 +213,7 @@
                                       (visit k db x {:data datum
                                                      :parent new-parent
                                                      :entities entities})))
-                            (cc/filter (cc/cont-with (comp not #{not-found} second))))
+                            (cc/filter (cc/cont-with (comp found? second))))
                            children)))
                        (cc/filter (cc/cont-with seq)))
                       data)
@@ -231,5 +236,5 @@
      (comp
       (cc/map (fn [k x]
                 (visit k db x {:data db :entities entities})))
-      (cc/filter (cc/cont-with (comp not #{not-found} second))))
+      (cc/filter (cc/cont-with (comp found? second))))
      (:children root))))
