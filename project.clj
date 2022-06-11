@@ -6,7 +6,7 @@
             :url "http://www.eclipse.org/legal/epl-v20.html"}
   :source-paths ["src"]
   :dependencies [[edn-query-language/eql "1.0.1"]
-                 [town.lilac/cascade "1.1.1"]]
+                 [town.lilac/cascade "2.0.0"]]
   :deploy-repositories [["snapshots" {:sign-releases false
                                       :url "https://clojars.org"
                                       :creds :gpg}]])

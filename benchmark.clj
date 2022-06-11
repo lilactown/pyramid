@@ -146,5 +146,5 @@
 (c/quick-bench
  (p/pull ppl-db query))
 
-(prof/profile (dotimes [i 1000]
+(prof/profile (dotimes [i 5000]
                 (p/pull ppl-db query)))
