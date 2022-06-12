@@ -128,6 +128,20 @@
                          #(k [(:key node) %])
                          result)))
 
+        ;; handle ordering of lists by using map/filter directly instaed of into
+        (or (list? data) (seq? data))
+        (cc/map
+                                       ;; k
+         (fn [s]
+           (cc/filter
+            k
+            (cc/cont-with (comp found? second))
+            s))
+                                       ;; f
+         (cc/cont-with
+          #(vector key (get % key not-found)))
+         data)
+
         (coll? data) (cc/into
                       k
                       (empty data)
@@ -199,6 +213,30 @@
                       (cc/filter (cc/cont-with seq))
                       (cc/filter (cc/cont-with (comp found? second))))
                      children)
+
+        ;; handle ordering of lists by using map/filter directly instaed of into
+        (or (list? data) (seq? data))
+        (cc/map
+         ;; k
+         (fn [s]
+           (cc/filter
+            (comp k #(vector (:key node) %)) ;k
+            (cc/cont-with seq) ;pred
+            s))
+         ;; f
+         (fn [k datum]
+           (cc/into
+            k
+            (with-meta (empty datum) (:meta node))
+            (comp
+             (cc/map (fn [k x]
+                       (visit k db x {:data datum
+                                      :parent new-parent
+                                      :entities entities})))
+             (cc/filter (cc/cont-with (comp found? second))))
+            children))
+         data)
+
         (coll? data) (cc/into
                       (comp k #(vector (:key node) %))
                       (empty data)
