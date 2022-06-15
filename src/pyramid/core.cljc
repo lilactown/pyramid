@@ -137,17 +137,17 @@
      ;; we've traversed all other elements, now process the top-level map
      ;; and return the results.
      (fn outer [d]
-       (let [data' (process! d)]
-         (let [em? (entity-map? identify data)]
-           {:entities (persistent! @*entities)
-            :indices (if em?
-                       #{}
-                       (set (keys data')))
-            :db (if em?
-                  @*db
-                  ;; data isn't an entity map, so we assoc each key in data.
-                  ;; they act like one-off custom indexes and can be pulled later
-                  (merge @*db data'))})))
+       (let [data' (process! d)
+             em? (entity-map? identify data)]
+         {:entities (persistent! @*entities)
+          :indices (if em?
+                     #{}
+                     (set (keys data')))
+          :db (if em?
+                @*db
+                ;; data isn't an entity map, so we assoc each key in data.
+                ;; they act like one-off custom indexes and can be pulled later
+                (merge @*db data'))}))
      data)))
 
 
