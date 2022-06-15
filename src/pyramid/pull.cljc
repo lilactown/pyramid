@@ -41,6 +41,17 @@
 (def not-found ::not-found)
 
 
+#?(:clj
+   (defn- fast-assoc
+     {:inline
+      (fn [m k v]
+        (if (symbol? m)
+          `(.assoc ~(with-meta m {:tag "clojure.lang.Associative"}) ~k ~v)
+          `(let [m# ~m] (fast-assoc m# ~k ~v))))}
+     [^clojure.lang.Associative m k v]
+     (.assoc m k v)))
+
+
 (defn- found?
   [x]
   (not (identical? not-found x)))
@@ -73,7 +84,7 @@
      x)
 
     (lookup-ref? x)
-    #(k (assoc {} (first x) (second x)))
+    #(k (#?(:clj fast-assoc :cljs assoc) {} (first x) (second x)))
 
     (coll? x)
     (cc/into
