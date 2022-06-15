@@ -142,7 +142,8 @@
 
 (t/deftest add-report
   (t/is (= {:db {:person/id {0 {:person/id 0}}}
-            :entities #{[:person/id 0]}}
+            :entities #{[:person/id 0]}
+            :indices #{}}
            (p/add-report {} {:person/id 0})))
   (t/is (= {:db {:person/id {0 {:person/id 0
                                 :person/name "Gill"
@@ -151,7 +152,8 @@
                                 :person/name "Uma"}}
                  :me [:person/id 0]}
             :entities #{[:person/id 0]
-                        [:person/id 1]}}
+                        [:person/id 1]}
+            :indices #{:me}}
            (p/add-report {} {:me {:person/id 0
                                   :person/name "Gill"
                                   :best-friend {:person/id 1

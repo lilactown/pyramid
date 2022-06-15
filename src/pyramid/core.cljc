@@ -138,12 +138,16 @@
      ;; and return the results.
      (fn outer [d]
        (let [data' (process! d)]
-         {:entities (persistent! @*entities)
-          :db (if (entity-map? identify data)
-                @*db
-                ;; data isn't an entity map, so we assoc each key in data.
-                ;; they act like one-off custom indexes and can be pulled later
-                (merge @*db data'))}))
+         (let [em? (entity-map? identify data)]
+           {:entities (persistent! @*entities)
+            :indices (if em?
+                       #{}
+                       (set (keys data')))
+            :db (if em?
+                  @*db
+                  ;; data isn't an entity map, so we assoc each key in data.
+                  ;; they act like one-off custom indexes and can be pulled later
+                  (merge @*db data'))})))
      data)))
 
 
