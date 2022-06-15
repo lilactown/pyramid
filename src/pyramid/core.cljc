@@ -202,9 +202,6 @@
     entities)))
 
 
-(def not-found ::not-found)
-
-
 (defn pull-report
   "Executes an EQL query against a normalized map `db`. Returns a map with the
   following keys:
