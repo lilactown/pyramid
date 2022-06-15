@@ -2,12 +2,18 @@
 
 ## UNRELEASED
 
+This update includes a significant rewrite of the algorithm which traverses &
+pulls data out of the db based on an EQL query. It has a minor if any performance
+impact, but allows working with arbitrarily nested data.
+
 ### Added
 
 - Pull queries now use protocol `IPullable` to resolve entities, allowing
   pyramid to query arbitrary data stores using EQL.
 - Datalog queries now use protocol `IQueryable` to get all entities from an
   object, allowing pyramid to query arbitraty data stores in memory.
+- `pull-report` now returns an `:indices` key with a set of top-level indices
+  that are used in the query.
 
 ### Fixed
 

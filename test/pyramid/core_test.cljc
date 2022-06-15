@@ -544,17 +544,20 @@
 (t/deftest pull-report
   (t/is (= {:data {:people/all [{:person/name "Alice"}
                                 {:person/name "Bob"}]}
-            :entities #{[:person/id 0] [:person/id 1]}}
+            :entities #{[:person/id 0] [:person/id 1]}
+            :indices #{:people/all}}
            (p/pull-report db [{:people/all [:person/name]}]))
         "basic join + prop")
   (t/is (= {:data #:people{:all [{:person/name "Alice"
                                   :best-friend #:person{:name "Bob", :id 1 :age 23}}
                                  #:person{:name "Bob"}]}
-            :entities #{[:person/id 0] [:person/id 1]}}
+            :entities #{[:person/id 0] [:person/id 1]}
+            :indices #{:people/all}}
            (p/pull-report db [#:people{:all [:person/name :best-friend]}]))
         "join + prop + join ref lookup")
   (t/is (= {:data {[:person/id 1] #:person{:id 1, :name "Bob", :age 23}}
-            :entities #{[:person/id 1]}}
+            :entities #{[:person/id 1]}
+            :indices #{}}
            (p/pull-report db [[:person/id 1]]))
         "ident acts as ref lookup")
   (t/is (= {:data {[:person/id 0] {:person/id 0
@@ -562,7 +565,8 @@
                                    :person/age 25
                                    :best-friend {:person/id 1}
                                    :person/favorites #:favorite{:ice-cream "vanilla"}}}
-            :entities #{[:person/id 0]}}
+            :entities #{[:person/id 0]}
+            :indices #{}}
            (p/pull-report db [[:person/id 0]]))
         "ident does not resolve nested refs"))
 

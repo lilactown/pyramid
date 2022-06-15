@@ -131,13 +131,13 @@
         ;; handle ordering of lists by using map/filter directly instaed of into
         (or (list? data) (seq? data))
         (cc/map
-                                       ;; k
+         ;; k
          (fn [s]
            (cc/filter
             k
             (cc/cont-with (comp found? second))
             s))
-                                       ;; f
+         ;; f
          (cc/cont-with
           #(vector key (get % key not-found)))
          data)
@@ -165,7 +165,7 @@
                    (conj! entities key-result)
                    (resolve-ref db key-result))
 
-                    ;; not a coll
+                 ;; not a coll
                  (map? key-result)
                  key-result
 
@@ -265,11 +265,17 @@
     :entities - a set of lookup refs that were visited during the query"
   [db query]
   (let [root (eql/query->ast query)
-        entities (transient #{})]
+        entities (transient #{})
+        indices (into
+                 #{}
+                 (comp (map :key)
+                       (remove ident/ident?))
+                 (:children root))]
     (cc/into
      (fn [data]
        {:data data
-        :entities (persistent! entities)})
+        :entities (persistent! entities)
+        :indices indices})
      (with-meta {} (:meta root))
      (comp
       (cc/map (fn [k x]
