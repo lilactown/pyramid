@@ -14,6 +14,8 @@ impact, but allows working with arbitrarily nested data.
   object, allowing pyramid to query arbitraty data stores in memory.
 - `pull-report` now returns an `:indices` key with a set of top-level indices
   that are used in the query.
+- `add-report` now returns an `:indices` key with a set of top-level indices
+  that are modified through adding the data to the db
 
 ### Fixed
 
