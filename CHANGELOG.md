@@ -1,6 +1,6 @@
 # CHANGELOG.md
 
-## UNRELEASED
+## 3.3.0
 
 This update includes a significant rewrite of the algorithm which traverses &
 pulls data out of the db based on an EQL query. It has a minor if any performance
@@ -16,6 +16,7 @@ impact, but allows working with arbitrarily nested data.
   that are used in the query.
 - `add-report` now returns an `:indices` key with a set of top-level indices
   that are modified through adding the data to the db
+- Support for babashka
 
 ### Fixed
 
