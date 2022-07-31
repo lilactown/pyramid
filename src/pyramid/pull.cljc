@@ -84,7 +84,7 @@
      x)
 
     (lookup-ref? x)
-    #(k (#?(:clj fast-assoc :cljs assoc) {} (first x) (second x)))
+    #(k (#?(:bb assoc :clj fast-assoc :cljs assoc) {} (first x) (second x)))
 
     (coll? x)
     (cc/into

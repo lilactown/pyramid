@@ -54,7 +54,7 @@
 
 (defn- map-entry
   [mk mv]
-  #?(:clj (clojure.lang.MapEntry/create mk mv)
+  #?(:clj (clojure.lang.MapEntry. mk mv)
      :cljs (cljs.core/MapEntry. mk mv nil)))
 
 
@@ -78,7 +78,10 @@
   ([m [k ek] f x]
    (let [em (get m k {})
          v (get em ek)]
-     #?(:clj (fast-assoc m k
+     #?(:bb (assoc m k
+                   (assoc em ek
+                          (f v x)))
+        :clj (fast-assoc m k
                          (fast-assoc em ek
                                      (f v x)))
         :cljs (assoc m k
@@ -92,7 +95,8 @@
     m
     (if (nil? m)
       e
-      #?(:clj (.kvreduce m fast-assoc e)
+      #?(:bb (reduce-kv assoc m e)
+         :clj (.kvreduce m fast-assoc e)
          :cljs (-kv-reduce m assoc e)))))
 
 
@@ -115,11 +119,15 @@
                    (if (map? x)
                      (if-some [lookup-ref (lookup-ref-of identify x)]
                        (do
+                         #_(prn :lookup-ref lookup-ref)
                          (vswap! *db update-ref lookup-ref merge-entity x)
+                         #_(prn :*db)
                          (vswap! *entities conj! lookup-ref)
+                         #_(prn :*entities)
                          lookup-ref)
                        x)
                      x))]
+    #_(prn :add-report*)
     (h/walk
      (fn inner [k x]
        (if (map-entry? x)
@@ -137,8 +145,11 @@
      ;; we've traversed all other elements, now process the top-level map
      ;; and return the results.
      (fn outer [d]
+       #_(prn :outer d)
+       d
        (let [data' (process! d)
              em? (entity-map? identify data)]
+         #_(prn :done-process!)
          {:entities (persistent! @*entities)
           :indices (if em?
                      #{}
