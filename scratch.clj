@@ -244,3 +244,46 @@
 (a/q '[:find ?e
        :where [?e :person/id 1]]
      (a/db conn))
+
+
+(def data [{:book/id 1
+            :book/title "Title 1"
+            :book/author {:author/id 1
+                          :author/name "Author 1"}}
+           {:book/id 2
+            :book/title "Title 2"
+            :book/author {:author/id 2
+                          :author/name "Author 2"}}])
+
+(def db (apply p/add {} data))
+
+
+(defn pull-books
+  [book-ids]
+  (for [book-id book-ids]
+    (-> db
+        (p/pull [{[:book/id book-id]
+                  [:book/id :book/title
+                   {:book/author [:author/id :author/name]}]}])
+        (get [:book/id book-id]))))
+
+(pull-books [1 2])
+;; => (#:book{:id 1, :title "Title 1", :author #:author{:id 1, :name "Author 1"}} #:book{:id 2, :title "Title 2", :author #:author{:id 2, :name "Author 2"}})
+
+
+(def data {:books [{:book/id 1
+                    :book/title "Title 1"
+                    :book/author {:author/id 1
+                                  :author/name "Author 1"}}
+                   {:book/id 2
+                    :book/title "Title 2"
+                    :book/author {:author/id 2
+                                  :author/name "Author 2"}}]})
+
+(def db (p/add {} data))
+
+(p/pull db [{:books [:book/id :book/title
+                     {:book/author [:author/id :author/name]}]}])
+;; => {:books [#:book{:id 1, :title "Title 1", :author #:author{:id 1, :name "Author 1"}} #:book{:id 2, :title "Title 2", :author #:author{:id 2, :name "Author 2"}}]}
+
+
