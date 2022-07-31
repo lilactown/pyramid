@@ -54,7 +54,8 @@
 
 (defn- map-entry
   [mk mv]
-  #?(:clj (clojure.lang.MapEntry. mk mv)
+  #?(:bb (first {mk mv})
+     :clj (clojure.lang.MapEntry/create mk mv)
      :cljs (cljs.core/MapEntry. mk mv nil)))
 
 
