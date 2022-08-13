@@ -135,7 +135,7 @@
                         1 {:person/id 1}}}
            (p/add
             {}
-            {:person/id 0}
+            {:person/id 0 :person/name "Alice"}
             {:person/id 1}
             {:person/id 0 :person/name "Gill"}))))
 
