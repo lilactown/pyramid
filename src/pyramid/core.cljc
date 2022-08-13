@@ -96,7 +96,7 @@
     m
     (if (nil? m)
       e
-      #?(:bb (reduce-kv assoc m e)
+      #?(:bb (reduce-kv assoc e m)
          :clj (.kvreduce m fast-assoc e)
          :cljs (-kv-reduce m assoc e)))))
 
