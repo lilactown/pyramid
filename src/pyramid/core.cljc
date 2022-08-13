@@ -27,15 +27,14 @@
 
 
 (def default-ident
-  (ident/by
-   (fn ident-by-id [entity]
-     (loop [kvs entity]
-       (when-some [[k v] (first kvs)]
-         (if (and
-               (keyword? k)
-               (= "id" (name k)))
-           (ident/ident k v)
-           (recur (rest kvs))))))))
+  (fn ident-by-id [entity]
+    (loop [kvs entity]
+      (when-some [[k v] (first kvs)]
+        (if (and
+              (keyword? k)
+              (= "id" (name k)))
+          (ident/ident k v)
+          (recur (rest kvs)))))))
 
 
 (defn- lookup-ref-of
@@ -147,7 +146,6 @@
      ;; and return the results.
      (fn outer [d]
        #_(prn :outer d)
-       d
        (let [data' (process! d)
              em? (entity-map? identify data)]
          #_(prn :done-process!)
@@ -176,7 +174,7 @@
    {}
    {:foo {:id 1
           '(:foo {:id "bar"}) {:id 2}}
-    :bar {:baz [ {:id 3} ]}})
+    :bar {:baz [{:id 3}]}})
 
 
 (defn add

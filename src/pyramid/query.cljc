@@ -516,11 +516,11 @@
   (execute
    '{:find [?e ?id]
      :in {$ [{:foo/id {"123" {:foo/id "123"
-                             :foo/bar "baz"}
-                      "456" {:foo/id "456"
-                             :foo/bar "asdf"}}
-             :foo {:bar "baz"}
-             :asdf "jkl"} ]
+                              :foo/bar "baz"}
+                       "456" {:foo/id "456"
+                              :foo/bar "asdf"}}
+              :foo {:bar "baz"}
+              :asdf "jkl"}]
           ?bar ["bat"]}
      :where
      ([?e :foo/id ?id]

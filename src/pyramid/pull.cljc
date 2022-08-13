@@ -139,7 +139,7 @@
                          #(k [(:key node) %])
                          result)))
 
-        ;; handle ordering of lists by using map/filter directly instaed of into
+        ;; handle ordering of lists by using map/filter directly instead of into
         (or (list? data) (seq? data))
         (cc/map
          ;; k
@@ -193,7 +193,7 @@
           [children new-parent] (cond
                                   (contains? node :children)
                                   [(:children node) node]
-                                  ;; inifinite recursion
+                                  ;; infinite recursion
                                   ;; repeat this query with the new data
                                   (= (:query node) '...)
                                   [(:children parent) parent]
@@ -225,7 +225,7 @@
                       (cc/filter (cc/cont-with (comp found? second))))
                      children)
 
-        ;; handle ordering of lists by using map/filter directly instaed of into
+        ;; handle ordering of lists by using map/filter directly instead of into
         (or (list? data) (seq? data))
         (cc/map
          ;; k
