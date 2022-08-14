@@ -1,5 +1,11 @@
 # CHANGELOG.md
 
+## UNRELEASED
+
+### Fixed
+
+- `merge-entity` in babashka
+
 ## 3.3.0
 
 This update includes a significant rewrite of the algorithm which traverses &
