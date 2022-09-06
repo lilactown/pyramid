@@ -168,7 +168,7 @@
           key-result (if (lookup-ref? key)
                        (do
                          (conj! entities key)
-                         (get-in db key not-found))
+                         (resolve-ref db key not-found))
                        (get data key not-found))
           data (cond
                  (lookup-ref? key-result)
