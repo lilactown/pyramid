@@ -139,7 +139,7 @@
                          #(k [(:key node) %])
                          result)))
 
-        ;; handle ordering of lists by using map/filter directly instaed of into
+        ;; handle ordering of lists by using map/filter directly instead of into
         (or (list? data) (seq? data))
         (cc/map
          ;; k
@@ -219,26 +219,24 @@
           union-child? (and (= 1 (count (:children node)))
                             (= :union (:type (first (:children node)))))]
       (cond
-        (and union-child? (map? data))
-        (if (map? data)
+        (map? data)
+        ;; handle union, which might be a component
+        (if (and union-child? (map? data))
           #(visit k' db (first (:children node))
                   {:data data
                    :parent new-parent
-                   :entities entities}))
-
-        (map? data)
-        ;; handle union, which might be a component
-        (cc/into
-         k'
-         (with-meta {} (:meta node))
-         (comp
-          (cc/map (fn [k x]
-                    (visit k db x {:data data
-                                   :parent new-parent
-                                   :entities entities})))
-          (cc/filter (cc/cont-with seq))
-          (cc/filter (cc/cont-with (comp found? second))))
-         children)
+                   :entities entities})
+          (cc/into
+           k'
+           (with-meta {} (:meta node))
+           (comp
+            (cc/map (fn [k x]
+                      (visit k db x {:data data
+                                     :parent new-parent
+                                     :entities entities})))
+            (cc/filter (cc/cont-with seq))
+            (cc/filter (cc/cont-with (comp found? second))))
+           children))
 
         ;; handle ordering of lists by using map/filter directly instaed of into
         (or (list? data) (seq? data))
