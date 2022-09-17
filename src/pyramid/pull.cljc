@@ -103,20 +103,20 @@
   [k db node {:keys [data parent entities]}]
   (case (:type node)
     :union
-    (cc/into
-     k
-     {}
-     (comp
-      (cc/map (fn [k x]
-                #(visit k db x {:data data :entities entities})))
-      (cc/filter (cc/cont-with (comp found? second))))
-     (:children node))
+    (cc/some k (fn [k x]
+                 (visit
+                  (fn [x]
+                    (when (found? x) (k x)))
+                  db x {:data data :entities entities}))
+             (:children node))
 
     :union-entry
     (let [union-key (:union-key node)]
       (if (contains? data union-key)
         (cc/into
-         k
+         (if-let [component (:component node)]
+           (comp k #(-with-result component %))
+           k)
          {}
          (comp
           (cc/map (fn [k x]
@@ -221,17 +221,25 @@
               #(k' (-with-result component %))
               k')]
       (cond
-        (map? data) (cc/into
-                     k'
-                     (with-meta {} (:meta node))
-                     (comp
-                      (cc/map (fn [k x]
-                                (visit k db x {:data data
-                                               :parent new-parent
-                                               :entities entities})))
-                      (cc/filter (cc/cont-with seq))
-                      (cc/filter (cc/cont-with (comp found? second))))
-                     children)
+        (map? data)
+        ;; handle union, which might be a component
+        (if (and (= 1 (count (:children node)))
+                 (= :union (:type (first (:children node)))))
+          #(visit k' db (first (:children node))
+                  {:data data
+                   :parent new-parent
+                   :entities entities})
+          (cc/into
+           k'
+           (with-meta {} (:meta node))
+           (comp
+            (cc/map (fn [k x]
+                      (visit k db x {:data data
+                                     :parent new-parent
+                                     :entities entities})))
+            (cc/filter (cc/cont-with seq))
+            (cc/filter (cc/cont-with (comp found? second))))
+           children))
 
         ;; handle ordering of lists by using map/filter directly instaed of into
         (or (list? data) (seq? data))
