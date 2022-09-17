@@ -47,13 +47,7 @@
   (with-meta q {:component #(->Component q %)}))
 
 
-(comment
-  (edn-query-language.core/query->ast [{:foo (->comp [:bar :baz])}])
-  (edn-query-language.core/query->ast [{:foo {:bar (->comp [:bar :asdf :jkl])
-                                              :baz (->comp [:baz :arst :nei])
-                                              :qux [:qux :qwfp :luy]}}])
-
-  (= {:query nil :result nil} (->Component nil nil)))
+(deftype Opaque [result])
 
 
 (t/deftest components
@@ -132,4 +126,23 @@
                       (->Component [:baz :arst :nei]
                                    {:baz 3 :arst 123 :nei 457})]}
                (:data (trampoline p/pull-report (update data :foo seq) query)))
-            "seq union entry"))))
+            "seq union entry")))
+  (t/testing "opaque transform"
+    (let [query [{:foo
+                  ^{:component #(->Opaque %)}
+                  [{:bar
+                    ^{:component #(->Opaque %)}
+                    [:baz]}]}]
+          data {:foo {:bar {:baz 123}}}]
+      (t/is (instance?
+             Opaque
+             (-> (trampoline p/pull-report data query)
+                 (:data)
+                 (:foo))))
+      (t/is (instance?
+             Opaque
+             (-> (trampoline p/pull-report data query)
+                 (:data)
+                 (:foo)
+                 (.-result)
+                 (:bar)))))))
