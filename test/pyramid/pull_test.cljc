@@ -23,6 +23,7 @@
               :all (vec entities)}
              [{:all [:id]}])))))
 
+
 (t/deftest list-order
   (t/is (=
          '({:thing {:id 1}} {:thing {:id 2}} {:thing {:id 3}}),
@@ -36,3 +37,25 @@
                query [{[:id 9] [:id {:my-list [{:thing [:id]}]}]}]]
            (-> (trampoline p/pull-report db query)
                (get-in [:data [:id 9] :my-list]))))))
+
+
+(defrecord Component [query result]
+  p/IComponent
+  (-with-result [this result] (assoc this :result result)))
+
+
+(defn ->comp [q] (with-meta q
+                   {:component (->Component q nil)}))
+
+
+(comment
+  (edn-query-language.core/query->ast [{:foo (->comp [:bar :baz])}]))
+
+
+(t/deftest components
+  (let [query [{:foo (->comp [:bar :baz])}]
+        data {:foo {:bar 123 :baz 456}}]
+    (t/is (= {:foo (->Component
+                    [:bar :baz]
+                    {:bar 123 :baz 456})}
+             (:data (trampoline p/pull-report data query))))))

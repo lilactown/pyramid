@@ -38,6 +38,10 @@
                  (throw (ex-info "no resolve-ref implementation found" {:value o})))))]))
 
 
+(defprotocol IComponent
+  (-with-result [c result]))
+
+
 (def not-found ::not-found)
 
 
@@ -211,10 +215,14 @@
                                                      node'))
                                                  (:children parent)))]
                                     [(:children parent)
-                                     parent]))]
+                                     parent]))
+          k' (comp k #(vector (:key node) %))
+          k' (if-let [component (:component node)]
+              #(k' (-with-result component %))
+              k')]
       (cond
         (map? data) (cc/into
-                     (comp k #(vector (:key node) %))
+                     k'
                      (with-meta {} (:meta node))
                      (comp
                       (cc/map (fn [k x]
@@ -231,7 +239,7 @@
          ;; k
          (fn [s]
            (cc/filter
-            (comp k #(vector (:key node) %)) ;k
+            k'
             (cc/cont-with seq) ;pred
             s))
          ;; f
@@ -249,7 +257,7 @@
          data)
 
         (coll? data) (cc/into
-                      (comp k #(vector (:key node) %))
+                      k'
                       (empty data)
                       (comp
                        (cc/map
