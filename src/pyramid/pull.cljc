@@ -38,10 +38,6 @@
                  (throw (ex-info "no resolve-ref implementation found" {:value o})))))]))
 
 
-(defprotocol IComponent
-  (-with-result [c result]))
-
-
 (def not-found ::not-found)
 
 
@@ -115,7 +111,7 @@
       (if (contains? data union-key)
         (cc/into
          (if-let [component (:component node)]
-           (comp k #(-with-result component %))
+           (comp k #(component %))
            k)
          {}
          (comp
@@ -218,28 +214,31 @@
                                      parent]))
           k' (comp k #(vector (:key node) %))
           k' (if-let [component (:component node)]
-              #(k' (-with-result component %))
-              k')]
+              #(k' (component %))
+              k')
+          union-child? (and (= 1 (count (:children node)))
+                            (= :union (:type (first (:children node)))))]
       (cond
-        (map? data)
-        ;; handle union, which might be a component
-        (if (and (= 1 (count (:children node)))
-                 (= :union (:type (first (:children node)))))
+        (and union-child? (map? data))
+        (if (map? data)
           #(visit k' db (first (:children node))
                   {:data data
                    :parent new-parent
-                   :entities entities})
-          (cc/into
-           k'
-           (with-meta {} (:meta node))
-           (comp
-            (cc/map (fn [k x]
-                      (visit k db x {:data data
-                                     :parent new-parent
-                                     :entities entities})))
-            (cc/filter (cc/cont-with seq))
-            (cc/filter (cc/cont-with (comp found? second))))
-           children))
+                   :entities entities}))
+
+        (map? data)
+        ;; handle union, which might be a component
+        (cc/into
+         k'
+         (with-meta {} (:meta node))
+         (comp
+          (cc/map (fn [k x]
+                    (visit k db x {:data data
+                                   :parent new-parent
+                                   :entities entities})))
+          (cc/filter (cc/cont-with seq))
+          (cc/filter (cc/cont-with (comp found? second))))
+         children)
 
         ;; handle ordering of lists by using map/filter directly instaed of into
         (or (list? data) (seq? data))
@@ -252,16 +251,23 @@
             s))
          ;; f
          (fn [k datum]
-           (cc/into
-            k
-            (with-meta (empty datum) (:meta node))
-            (comp
-             (cc/map (fn [k x]
-                       (visit k db x {:data datum
-                                      :parent new-parent
-                                      :entities entities})))
-             (cc/filter (cc/cont-with (comp found? second))))
-            children))
+           (if union-child?
+             #(visit (comp k (fn [x]
+                               (with-meta x (:meta node))))
+                     db (first children)
+                     {:data datum
+                      :parent new-parent
+                      :entities entities})
+             (cc/into
+              k
+              (with-meta (empty datum) (:meta node))
+              (comp
+               (cc/map (fn [k x]
+                         (visit k db x {:data datum
+                                        :parent new-parent
+                                        :entities entities})))
+               (cc/filter (cc/cont-with (comp found? second))))
+              children)))
          data)
 
         (coll? data) (cc/into
@@ -270,16 +276,23 @@
                       (comp
                        (cc/map
                         (fn [k datum]
-                          (cc/into
-                           k
-                           (with-meta (empty datum) (:meta node))
-                           (comp
-                            (cc/map (fn [k x]
-                                      (visit k db x {:data datum
-                                                     :parent new-parent
-                                                     :entities entities})))
-                            (cc/filter (cc/cont-with (comp found? second))))
-                           children)))
+                          (if union-child?
+                            #(visit (comp k (fn [x]
+                                              (with-meta x (:meta node))))
+                                    db (first children)
+                                    {:data datum
+                                     :parent new-parent
+                                     :entities entities})
+                            (cc/into
+                             k
+                             (with-meta (empty datum) (:meta node))
+                             (comp
+                              (cc/map (fn [k x]
+                                        (visit k db x {:data datum
+                                                       :parent new-parent
+                                                       :entities entities})))
+                              (cc/filter (cc/cont-with (comp found? second))))
+                             children))))
                        (cc/filter (cc/cont-with seq)))
                       data)
         :else #(k nil)))))

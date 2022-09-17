@@ -39,13 +39,12 @@
                (get-in [:data [:id 9] :my-list]))))))
 
 
-(defrecord Component [query result]
-  p/IComponent
-  (-with-result [this result] (assoc this :result result)))
+(defrecord Component [query result])
 
 
-(defn ->comp [q] (with-meta q
-                   {:component (->Component q nil)}))
+(defn ->comp
+  [q]
+  (with-meta q {:component #(->Component q %)}))
 
 
 (comment
@@ -126,4 +125,11 @@
                       (->Component [:baz :arst :nei]
                                    {:baz 3 :arst 123 :nei 457})]}
                (:data (trampoline p/pull-report data query)))
-            "multiple item union entry"))))
+            "vector union entry")
+      (t/is (= {:foo [{:qux 1 :qwfp 123 :luy 456}
+                      (->Component [:bar :asdf :jkl]
+                                   {:bar 2 :asdf 123 :jkl 456})
+                      (->Component [:baz :arst :nei]
+                                   {:baz 3 :arst 123 :nei 457})]}
+               (:data (trampoline p/pull-report (update data :foo seq) query)))
+            "seq union entry"))))
