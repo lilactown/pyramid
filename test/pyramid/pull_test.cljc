@@ -42,7 +42,7 @@
 (defrecord Visited [query result])
 
 
-(defn ->comp
+(defn visit
   [q]
   (with-meta q {:visitor #(->Visited q %2)}))
 
@@ -52,14 +52,14 @@
 
 (t/deftest visitors
   (t/testing "simple join"
-    (let [query [{:foo (->comp [:bar :baz])}]
+    (let [query [{:foo (visit [:bar :baz])}]
           data {:foo {:bar 123 :baz 456}}]
       (t/is (= {:foo (->Visited
                       [:bar :baz]
                       {:bar 123 :baz 456})}
                (:data (trampoline p/pull-report data query)))
             "single item"))
-    (let [query [{:foo (->comp [:bar :baz])}]
+    (let [query [{:foo (visit [:bar :baz])}]
           data {:foo [{:bar 123 :baz 456}
                       {:bar 789 :baz "qux"}]}]
       (t/is (= {:foo (->Visited
@@ -68,18 +68,18 @@
                (:data (trampoline p/pull-report data query)))
             "multiple items")))
   (t/testing "nested join"
-    (let [query [{:foo (->comp [{:bar [:baz]}])}]
+    (let [query [{:foo (visit [{:bar [:baz]}])}]
           data {:foo {:bar {:baz 123}}}]
       (t/is (= {:foo (->Visited
                       [{:bar [:baz]}]
                       {:bar {:baz 123}})}
                (:data (trampoline p/pull-report data query))))))
   (t/testing "nested visitors"
-    (let [query [{:foo (->comp [{:bar (->comp [:baz])}])}]
+    (let [query [{:foo (visit [{:bar (visit [:baz])}])}]
           data {:foo [{:bar {:baz 123}}
                       {:bar {:baz 456}}]}]
       (t/is (= {:foo (->Visited
-                      [{:bar (->comp [:baz])}]
+                      [{:bar (visit [:baz])}]
                       [{:bar (->Visited
                               [:baz]
                               {:baz 123})}
@@ -88,7 +88,7 @@
                               {:baz 456})}])}
                (:data (trampoline p/pull-report data query))))))
   (t/testing "union"
-    (let [query [{:foo (->comp
+    (let [query [{:foo (visit
                         {:bar [:bar :asdf :jkl]
                          :baz [:baz :arst :nei]
                          :qux [:qux :qwfp :luy]})}]
@@ -99,16 +99,16 @@
                                 {:bar 2 :asdf 123 :jkl 456})}
                (:data (trampoline p/pull-report data query)))
             "whole union in visitor"))
-    (let [query [{:foo {:bar (->comp [:bar :asdf :jkl])
-                        :baz (->comp [:baz :arst :nei])
+    (let [query [{:foo {:bar (visit [:bar :asdf :jkl])
+                        :baz (visit [:baz :arst :nei])
                         :qux [:qux :qwfp :luy]}}]
           data {:foo {:bar 2 :asdf 123 :jkl 456}}]
       (t/is (= {:foo (->Visited [:bar :asdf :jkl]
                                 {:bar 2 :asdf 123 :jkl 456})}
                (:data (trampoline p/pull-report data query)))
             "single item union entry"))
-    (let [query [{:foo {:bar (->comp [:bar :asdf :jkl])
-                        :baz (->comp [:baz :arst :nei])
+    (let [query [{:foo {:bar (visit [:bar :asdf :jkl])
+                        :baz (visit [:baz :arst :nei])
                         :qux [:qux :qwfp :luy]}}]
           data {:foo [{:qux 1 :qwfp 123 :luy 456}
                       {:bar 2 :asdf 123 :jkl 456}
