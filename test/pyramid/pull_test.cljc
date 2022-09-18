@@ -44,7 +44,7 @@
 
 (defn ->comp
   [q]
-  (with-meta q {:component #(->Component q %)}))
+  (with-meta q {:component #(->Component q %2)}))
 
 
 (deftype Opaque [result])
