@@ -111,7 +111,7 @@
       (if (contains? data union-key)
         (cc/into
          (if-let [component (:component node (get-in node [:meta :component]))]
-           (comp k #(component %))
+           (comp k #(component db %))
            k)
          {}
          (comp
@@ -214,7 +214,7 @@
                                      parent]))
           k' (comp k #(vector (:key node) %))
           k' (if-let [component (:component node (get-in node [:meta :component]))]
-              #(k' (component %))
+              #(k' (component db %))
               k')
           union-child? (and (= 1 (count (:children node)))
                             (= :union (:type (first (:children node)))))]
