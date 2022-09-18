@@ -129,9 +129,9 @@
             "seq union entry")))
   (t/testing "opaque transform"
     (let [query [{:foo
-                  ^{:component #(->Opaque %)}
+                  ^{:component #(->Opaque %2)}
                   [{:bar
-                    ^{:component #(->Opaque %)}
+                    ^{:component #(->Opaque %2)}
                     [:baz]}]}]
           data {:foo {:bar {:baz 123}}}]
       (t/is (instance?
