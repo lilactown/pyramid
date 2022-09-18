@@ -39,30 +39,30 @@
                (get-in [:data [:id 9] :my-list]))))))
 
 
-(defrecord Component [query result])
+(defrecord Visited [query result])
 
 
 (defn ->comp
   [q]
-  (with-meta q {:component #(->Component q %2)}))
+  (with-meta q {:visitor #(->Visited q %2)}))
 
 
 (deftype Opaque [result])
 
 
-(t/deftest components
+(t/deftest visitors
   (t/testing "simple join"
     (let [query [{:foo (->comp [:bar :baz])}]
-         data {:foo {:bar 123 :baz 456}}]
-     (t/is (= {:foo (->Component
-                     [:bar :baz]
-                     {:bar 123 :baz 456})}
-              (:data (trampoline p/pull-report data query)))
-           "single item"))
+          data {:foo {:bar 123 :baz 456}}]
+      (t/is (= {:foo (->Visited
+                      [:bar :baz]
+                      {:bar 123 :baz 456})}
+               (:data (trampoline p/pull-report data query)))
+            "single item"))
     (let [query [{:foo (->comp [:bar :baz])}]
           data {:foo [{:bar 123 :baz 456}
                       {:bar 789 :baz "qux"}]}]
-      (t/is (= {:foo (->Component
+      (t/is (= {:foo (->Visited
                       [:bar :baz]
                       [{:bar 123 :baz 456} {:bar 789 :baz "qux"}])}
                (:data (trampoline p/pull-report data query)))
@@ -70,20 +70,20 @@
   (t/testing "nested join"
     (let [query [{:foo (->comp [{:bar [:baz]}])}]
           data {:foo {:bar {:baz 123}}}]
-      (t/is (= {:foo (->Component
+      (t/is (= {:foo (->Visited
                       [{:bar [:baz]}]
                       {:bar {:baz 123}})}
                (:data (trampoline p/pull-report data query))))))
-  (t/testing "nested components"
+  (t/testing "nested visitors"
     (let [query [{:foo (->comp [{:bar (->comp [:baz])}])}]
           data {:foo [{:bar {:baz 123}}
                       {:bar {:baz 456}}]}]
-      (t/is (= {:foo (->Component
+      (t/is (= {:foo (->Visited
                       [{:bar (->comp [:baz])}]
-                      [{:bar (->Component
+                      [{:bar (->Visited
                               [:baz]
                               {:baz 123})}
-                       {:bar (->Component
+                       {:bar (->Visited
                               [:baz]
                               {:baz 456})}])}
                (:data (trampoline p/pull-report data query))))))
@@ -93,18 +93,18 @@
                          :baz [:baz :arst :nei]
                          :qux [:qux :qwfp :luy]})}]
           data {:foo {:bar 2 :asdf 123 :jkl 456}}]
-      (t/is (= {:foo (->Component {:bar [:bar :asdf :jkl]
-                                   :baz [:baz :arst :nei]
-                                   :qux [:qux :qwfp :luy]}
-                                  {:bar 2 :asdf 123 :jkl 456})}
+      (t/is (= {:foo (->Visited {:bar [:bar :asdf :jkl]
+                                 :baz [:baz :arst :nei]
+                                 :qux [:qux :qwfp :luy]}
+                                {:bar 2 :asdf 123 :jkl 456})}
                (:data (trampoline p/pull-report data query)))
-            "whole union in component"))
+            "whole union in visitor"))
     (let [query [{:foo {:bar (->comp [:bar :asdf :jkl])
                         :baz (->comp [:baz :arst :nei])
                         :qux [:qux :qwfp :luy]}}]
           data {:foo {:bar 2 :asdf 123 :jkl 456}}]
-      (t/is (= {:foo (->Component [:bar :asdf :jkl]
-                                  {:bar 2 :asdf 123 :jkl 456})}
+      (t/is (= {:foo (->Visited [:bar :asdf :jkl]
+                                {:bar 2 :asdf 123 :jkl 456})}
                (:data (trampoline p/pull-report data query)))
             "single item union entry"))
     (let [query [{:foo {:bar (->comp [:bar :asdf :jkl])
@@ -114,24 +114,24 @@
                       {:bar 2 :asdf 123 :jkl 456}
                       {:baz 3 :arst 123 :nei 457}]}]
       (t/is (= {:foo [{:qux 1 :qwfp 123 :luy 456}
-                      (->Component [:bar :asdf :jkl]
-                                   {:bar 2 :asdf 123 :jkl 456})
-                      (->Component [:baz :arst :nei]
-                                   {:baz 3 :arst 123 :nei 457})]}
+                      (->Visited [:bar :asdf :jkl]
+                                 {:bar 2 :asdf 123 :jkl 456})
+                      (->Visited [:baz :arst :nei]
+                                 {:baz 3 :arst 123 :nei 457})]}
                (:data (trampoline p/pull-report data query)))
             "vector union entry")
       (t/is (= {:foo [{:qux 1 :qwfp 123 :luy 456}
-                      (->Component [:bar :asdf :jkl]
-                                   {:bar 2 :asdf 123 :jkl 456})
-                      (->Component [:baz :arst :nei]
-                                   {:baz 3 :arst 123 :nei 457})]}
+                      (->Visited [:bar :asdf :jkl]
+                                 {:bar 2 :asdf 123 :jkl 456})
+                      (->Visited [:baz :arst :nei]
+                                 {:baz 3 :arst 123 :nei 457})]}
                (:data (trampoline p/pull-report (update data :foo seq) query)))
             "seq union entry")))
   (t/testing "opaque transform"
     (let [query [{:foo
-                  ^{:component #(->Opaque %2)}
+                  ^{:visitor #(->Opaque %2)}
                   [{:bar
-                    ^{:component #(->Opaque %2)}
+                    ^{:visitor #(->Opaque %2)}
                     [:baz]}]}]
           data {:foo {:bar {:baz 123}}}]
       (t/is (instance?

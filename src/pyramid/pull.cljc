@@ -110,8 +110,8 @@
     (let [union-key (:union-key node)]
       (if (contains? data union-key)
         (cc/into
-         (if-let [component (:component node (get-in node [:meta :component]))]
-           (comp k #(component db %))
+         (if-let [visitor (get-in node [:meta :visitor])]
+           (comp k #(visitor db %))
            k)
          {}
          (comp
@@ -213,14 +213,14 @@
                                     [(:children parent)
                                      parent]))
           k' (comp k #(vector (:key node) %))
-          k' (if-let [component (:component node (get-in node [:meta :component]))]
-              #(k' (component db %))
+          k' (if-let [visitor (get-in node [:meta :visitor])]
+              #(k' (visitor db %))
               k')
           union-child? (and (= 1 (count (:children node)))
                             (= :union (:type (first (:children node)))))]
       (cond
         (map? data)
-        ;; handle union, which might be a component
+        ;; handle union, which might have a visitor
         (if (and union-child? (map? data))
           #(visit k' db (first (:children node))
                   {:data data
