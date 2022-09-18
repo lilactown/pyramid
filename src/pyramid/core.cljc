@@ -214,6 +214,12 @@
     entities)))
 
 
+(defn identify
+  [db data]
+  (let [identify (:db/ident (meta db) default-ident)]
+    (lookup-ref-of identify data)))
+
+
 (defn pull-report
   "Executes an EQL query against a normalized map `db`. Returns a map with the
   following keys:
