@@ -274,6 +274,12 @@
                            [:person/name :person/id]}]))))
 
   (t/testing "union"
+    (let [data {:foo {:bar/id 2 :asdf 123 :jkl 456 :qux 789}}
+          db (p/db [data])
+          query [{:foo {:bar/id [:bar/id :asdf :jkl]
+                        :baz/id [:baz/id :arst :nei]}}]]
+      (t/is (= {:foo {:bar/id 2 :asdf 123 :jkl 456}}
+               (p/pull db query))))
     (let [data {:chat/entries
                 [{:message/id 0
                   :message/text "foo"

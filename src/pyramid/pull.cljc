@@ -99,20 +99,20 @@
   [k db node {:keys [data parent entities]}]
   (case (:type node)
     :union
-    (cc/into
-     k
-     {}
-     (comp
-      (cc/map (fn [k x]
-                #(visit k db x {:data data :entities entities})))
-      (cc/filter (cc/cont-with (comp found? second))))
-     (:children node))
+    (cc/some k (fn [k x]
+                 (visit
+                  (fn [x]
+                    (when (found? x) (k x)))
+                  db x {:data data :entities entities}))
+             (:children node))
 
     :union-entry
     (let [union-key (:union-key node)]
       (if (contains? data union-key)
         (cc/into
-         k
+         (if-let [visitor (-> node :query meta :visitor)]
+           (comp k #(visitor db %))
+           k)
          {}
          (comp
           (cc/map (fn [k x]
@@ -211,19 +211,32 @@
                                                      node'))
                                                  (:children parent)))]
                                     [(:children parent)
-                                     parent]))]
+                                     parent]))
+          k' (comp k #(vector (:key node) %))
+          k' (if-let [visitor (-> node :query meta :visitor)]
+              #(k' (visitor db %))
+              k')
+          union-child? (and (= 1 (count (:children node)))
+                            (= :union (:type (first (:children node)))))]
       (cond
-        (map? data) (cc/into
-                     (comp k #(vector (:key node) %))
-                     (with-meta {} (:meta node))
-                     (comp
-                      (cc/map (fn [k x]
-                                (visit k db x {:data data
-                                               :parent new-parent
-                                               :entities entities})))
-                      (cc/filter (cc/cont-with seq))
-                      (cc/filter (cc/cont-with (comp found? second))))
-                     children)
+        (map? data)
+        ;; handle union, which might have a visitor
+        (if (and union-child? (map? data))
+          #(visit k' db (first (:children node))
+                  {:data data
+                   :parent new-parent
+                   :entities entities})
+          (cc/into
+           k'
+           (with-meta {} (:meta node))
+           (comp
+            (cc/map (fn [k x]
+                      (visit k db x {:data data
+                                     :parent new-parent
+                                     :entities entities})))
+            (cc/filter (cc/cont-with seq))
+            (cc/filter (cc/cont-with (comp found? second))))
+           children))
 
         ;; handle ordering of lists by using map/filter directly instead of into
         (or (list? data) (seq? data))
@@ -231,39 +244,53 @@
          ;; k
          (fn [s]
            (cc/filter
-            (comp k #(vector (:key node) %)) ;k
+            k'
             (cc/cont-with seq) ;pred
             s))
          ;; f
          (fn [k datum]
-           (cc/into
-            k
-            (with-meta (empty datum) (:meta node))
-            (comp
-             (cc/map (fn [k x]
-                       (visit k db x {:data datum
-                                      :parent new-parent
-                                      :entities entities})))
-             (cc/filter (cc/cont-with (comp found? second))))
-            children))
+           (if union-child?
+             #(visit (comp k (fn [x]
+                               (with-meta x (:meta node))))
+                     db (first children)
+                     {:data datum
+                      :parent new-parent
+                      :entities entities})
+             (cc/into
+              k
+              (with-meta (empty datum) (:meta node))
+              (comp
+               (cc/map (fn [k x]
+                         (visit k db x {:data datum
+                                        :parent new-parent
+                                        :entities entities})))
+               (cc/filter (cc/cont-with (comp found? second))))
+              children)))
          data)
 
         (coll? data) (cc/into
-                      (comp k #(vector (:key node) %))
+                      k'
                       (empty data)
                       (comp
                        (cc/map
                         (fn [k datum]
-                          (cc/into
-                           k
-                           (with-meta (empty datum) (:meta node))
-                           (comp
-                            (cc/map (fn [k x]
-                                      (visit k db x {:data datum
-                                                     :parent new-parent
-                                                     :entities entities})))
-                            (cc/filter (cc/cont-with (comp found? second))))
-                           children)))
+                          (if union-child?
+                            #(visit (comp k (fn [x]
+                                              (with-meta x (:meta node))))
+                                    db (first children)
+                                    {:data datum
+                                     :parent new-parent
+                                     :entities entities})
+                            (cc/into
+                             k
+                             (with-meta (empty datum) (:meta node))
+                             (comp
+                              (cc/map (fn [k x]
+                                        (visit k db x {:data datum
+                                                       :parent new-parent
+                                                       :entities entities})))
+                              (cc/filter (cc/cont-with (comp found? second))))
+                             children))))
                        (cc/filter (cc/cont-with seq)))
                       data)
         :else #(k nil)))))
