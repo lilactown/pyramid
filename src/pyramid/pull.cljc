@@ -110,7 +110,7 @@
     (let [union-key (:union-key node)]
       (if (contains? data union-key)
         (cc/into
-         (if-let [visitor (get-in node [:meta :visitor])]
+         (if-let [visitor (-> node :query meta :visitor)]
            (comp k #(visitor db %))
            k)
          {}
@@ -213,7 +213,7 @@
                                     [(:children parent)
                                      parent]))
           k' (comp k #(vector (:key node) %))
-          k' (if-let [visitor (get-in node [:meta :visitor])]
+          k' (if-let [visitor (-> node :query meta :visitor)]
               #(k' (visitor db %))
               k')
           union-child? (and (= 1 (count (:children node)))

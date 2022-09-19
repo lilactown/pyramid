@@ -44,7 +44,7 @@
 
 (defn visit
   [q]
-  (with-meta q {:visitor #(->Visited q %2)}))
+  (with-meta q {:visitor #(->Visited (doto q prn) %2)}))
 
 
 (deftype Opaque [result])

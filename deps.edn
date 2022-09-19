@@ -1,6 +1,5 @@
 {:paths ["src"]
- :deps {edn-query-language/eql {:git/url "https://github.com/edn-query-language/eql"
-                                :git/sha "9041162c6f1b02f61e94c6316a31aa944bb87400"} #_{:mvn/version "1.0.1"}
+ :deps {edn-query-language/eql {:mvn/version "1.0.1"}
         town.lilac/cascade {:mvn/version "2.0.1"}}
  :aliases {:test
            {:extra-paths ["test"]
