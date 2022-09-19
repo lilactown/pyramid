@@ -2,6 +2,22 @@
 
 ## UNRELEASED
 
+### Added
+
+* New `pyramid.core/identify` function which takes a DB and entity map and returns the lookup ID of the map if it were added to the DB.
+* New visitor pattern support
+
+Visitor pattern: you can now annotate parts of an EQL query with
+`{:visitor (fn visit [db data] ,,,)}` metadata, which will replace the location
+with the return value of the `visit` function in the final result of the `pull`
+or `pull-report` call.
+
+It is similar to doing a postwalk on the results of `pull` or `pull-report`, but
+is done in the same pass as pulling data out of the DB - so less traversals - and
+annotated directly on the query.
+
+See [./test/pyramid/pull_test.cljc] for example usage.
+
 ### Fixed
 
 - `merge-entity` in babashka
