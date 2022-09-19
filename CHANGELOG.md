@@ -16,7 +16,7 @@ It is similar to doing a postwalk on the results of `pull` or `pull-report`, but
 is done in the same pass as pulling data out of the DB - so less traversals - and
 annotated directly on the query.
 
-See [./test/pyramid/pull_test.cljc]() for example usage.
+See [pull_test.cljc](https://github.com/lilactown/pyramid/blob/839306f374ddb888b9e06f0f9dfd14a5f943b0ee/test/pyramid/pull_test.cljc#L53) for example usage.
 
 ### Fixed
 
