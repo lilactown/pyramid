@@ -1,6 +1,6 @@
 # CHANGELOG.md
 
-## UNRELEASED
+## 3.4.0
 
 ### Added
 
