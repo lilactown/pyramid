@@ -174,8 +174,7 @@ See the EQL docs and tests in this repo for more examples of what's possible!
 
 ## More details
 
-Collections like vectors, sets and lists should not mix entities and
-non-entities. Collections are recursively walked to find entities.
+Collections are recursively walked to find entities.
 
 To get meta-information about what entities were added or queried, use the
 `add-report` and `pull-report` functions.
