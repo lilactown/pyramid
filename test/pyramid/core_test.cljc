@@ -44,6 +44,18 @@
                    :b [{:c {:d/id 1
                             :d/txt "a"}}]}]))
         "Collections of non-entities still get normalized")
+  (t/is (= {:person/id {0 {:person/id 0
+                           :person/name "Bill"
+                           :person/friends [{:person/name "Bob"}
+                                            [:person/id 2]]}
+                        2 {:person/id 2
+                           :person/name "Alice"}}}
+           (p/db [{:person/id 0
+                   :person/name "Bill"
+                   :person/friends [{:person/name "Bob"}
+                                    {:person/name "Alice"
+                                     :person/id 2}]}]))
+        "heterogeneous collections")
   (t/is (= {:person/id
             {123
              {:person/id 123,
