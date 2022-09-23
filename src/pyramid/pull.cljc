@@ -180,14 +180,21 @@
                  (map? key-result)
                  key-result
 
-                 (and (coll? key-result) (every? lookup-ref? key-result))
-                 (do
-                   (doseq [lookup-ref key-result]
-                     (conj! entities lookup-ref))
-                   (into
-                    (empty key-result)
-                    (map #(resolve-ref db % (conj {} %)))
-                    key-result))
+                 (or (list? key-result) (seq? key-result))
+                 (map #(if (lookup-ref? %)
+                         (do (conj! entities %)
+                             (resolve-ref db % (conj {} %)))
+                         %)
+                      key-result)
+
+                 (coll? key-result)
+                 (into
+                  (empty key-result)
+                  (map #(if (lookup-ref? %)
+                          (do (conj! entities %)
+                              (resolve-ref db % (conj {} %)))
+                          %))
+                  key-result)
 
                  :else key-result)
           [children new-parent] (cond

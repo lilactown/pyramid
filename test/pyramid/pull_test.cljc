@@ -39,6 +39,21 @@
                (get-in [:data [:id 9] :my-list]))))))
 
 
+(t/deftest heterogeneous-colls
+  (let [db {:person/id {0 {:person/id 0
+                           :person/name "Bill"
+                           :person/friends [{:person/name "Bob"}
+                                            [:person/id 2]]}
+                        2 {:person/id 2
+                           :person/name "Alice"}}}
+        query [{[:person/id 0] [:person/name {:person/friends [:person/name]}]}]]
+    (t/is
+     (= {[:person/id 0] {:person/name "Bill"
+                         :person/friends [{:person/name "Bob"}
+                                          {:person/name "Alice"}]}}
+        (:data (trampoline p/pull-report db query))))))
+
+
 (defrecord Visited [query result])
 
 

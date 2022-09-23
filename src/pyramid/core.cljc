@@ -10,9 +10,6 @@
   :person/id. Adding data about the same entity will merge them together in
   order of addition. To replace an entity, `dissoc` it first.
 
-  NOTE: Collections like vectors, sets and lists should not mix entities and
-  non-entities. Collections are recursively walked to find entities.
-
   Query them w/ EQL using `pull`.
 
   To get meta-information about what entities were added or queried, use the
