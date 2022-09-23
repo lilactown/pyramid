@@ -1,5 +1,12 @@
 # CHANGELOG.md
 
+## UNRELEASED
+
+### Breaking
+
+* You can now mix entities and non-entities in collections when using `pull` and
+  `pull-report`.
+
 ## 3.4.0
 
 ### Added
