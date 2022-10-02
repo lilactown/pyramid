@@ -79,7 +79,7 @@ together act as a pointer to a domain entity. E.g. `[:person/id 1234]`.
 
 ## Usage
 
-See [./docs/GUIDE.md](docs/GUIDE.md)
+See [docs/GUIDE.md](docs/GUIDE.md)
 
 ## Prior art
 
