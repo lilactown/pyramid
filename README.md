@@ -7,6 +7,11 @@ Features:
 * Algorithm for taking trees of data and storing them in normal form in Clojure
   data.
 
+## Install & docs
+
+[![Clojars Project](https://img.shields.io/clojars/v/town.lilac/pyramid.svg)](https://clojars.org/town.lilac/pyramid) [![cljdoc badge](https://cljdoc.org/badge/town.lilac/pyramid)](https://cljdoc.org/d/town.lilac/pyramid/CURRENT)
+
+
 ## Why
 
 Clojure is well known for its graph databases like datomic and datascript which
