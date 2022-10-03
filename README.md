@@ -1,4 +1,4 @@
-# pyramid
+# ◭ pyramid
 
 A library for storing and querying graph data in Clojure.
 
