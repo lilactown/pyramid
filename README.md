@@ -19,6 +19,14 @@ implement a datalog-like query language. There are contexts where the power vs
 performance tradeoffs of these query languages don't make sense, which is where
 pyramid can shine.
 
+Pyramid focuses on doing essential things like selecting data from and
+traversing relationships between entities, while eschewing arbitrary logic like
+what SQL and datalog provide. What it lacks in features it makes up for in read
+performance when combined with a data store that has fast in-memory look ups of
+entities by key, such as Clojure maps. It can also be extended to databases like
+Datomic, DataScript and Asami.
+
+
 ## What
 
 Pyramid aims to be useful at each evolutionary stage of a progam where one needs
@@ -27,8 +35,20 @@ to traverse and make selections out of graphs of data.
 ### Selection
 
 Pyramid starts by working with Clojure data structures. A simple program that
-uses pyramid can use a query to select speficic data out of a large, deeply
+uses pyramid can use a query to select specific data out of a large, deeply
 nested tree, like a supercharged `select-keys`.
+
+```clojure
+(def data
+  {:people [{:given-name "Bob" :surname "Smith" :age 29}
+            {:given-name "Alice" :surname "Meyer" :age 43}]
+   :items {}})
+
+(def query [{:people [:given-name]}])
+
+(pyramid.core/pull data query)
+;; => {:people [{:given-name "Bob"} {:given-name "Alice"}]}
+```
 
 ### Transformation
 
@@ -39,6 +59,22 @@ of data. Simply annotate parts of your query with metadata
 used to transform the data in a depth-first, post-order traversal (just like
 `clojure.walk/postwalk`).
 
+```clojure
+(def data
+  {:people [{:given-name "Bob" :surname "Smith" :age 29}
+            {:given-name "Alice" :surname "Meyer" :age 43}]
+   :items {}})
+
+(defn fullname
+  [{:keys [given-name surname] :as person}]
+  (str given-name " " surname))
+
+(def query [{:people ^{:visitor fullname} [:given-name :surname]}])
+
+(pyramid.core/pull data query)
+;; => {:people ["Bob Smith" "Alice Meyer"]}
+ ```
+
 ### Accretion
 
 A more complex program may need to keep track of that data over time, or query
@@ -47,6 +83,8 @@ Adding data to a db will [normalize](https://en.wikipedia.org/wiki/Database_norm
 the data into a flat structure allowing for easy updating of entities as new
 data is obtained and allow relationships that are hard to represent in trees.
 Queries can traverse the references inside this data.
+
+See [docs/USAGE.md](docs/USAGE.md).
 
 ### Durability
 
@@ -72,10 +110,15 @@ data in a nested, recursive way, making it ideal for traversing graphs of data.
 It does not provide arbitrary logic like SQL or Datalog.
 
 **Entity map**: a Clojure map which contains information that uniquely identifies
-the domain entity it is about. E.g. `{:person/id 1234 :person/name "Bill" :person/age 67}`.
+the domain entity it is about. E.g. `{:person/id 1234 :person/name "Bill"
+:person/age 67}` could be uniquely identified by it's `:person/id` key. By 
+default, any map which contains a key which `(= "id" (name key))` is true, is an
+entity map and can be normalized using `pyramid.core/db`.
 
 **Lookup ref**: a 2-element Clojure vector that has a keyword and a value which
 together act as a pointer to a domain entity. E.g. `[:person/id 1234]`.
+`pyramid.core/pull` will attempt to look them up in the db value if they appear
+in the result at a location where the query expects to do a join.
 
 ## Usage
 
