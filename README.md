@@ -84,7 +84,7 @@ the data into a flat structure allowing for easy updating of entities as new
 data is obtained and allow relationships that are hard to represent in trees.
 Queries can traverse the references inside this data.
 
-See [docs/USAGE.md](docs/USAGE.md).
+See [docs/GUIDE.md](docs/GUIDE.md).
 
 ### Durability
 
