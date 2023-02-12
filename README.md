@@ -29,7 +29,7 @@ Datomic, DataScript and Asami.
 
 ## What
 
-Pyramid aims to be useful at each evolutionary stage of a progam where one needs
+Pyramid can be useful at each evolutionary stage of a program where one needs
 to traverse and make selections out of graphs of data.
 
 ### Selection
@@ -79,6 +79,13 @@ used to transform the data in a depth-first, post-order traversal (just like
 
 A more complex program may need to keep track of that data over time, or query
 data that contains cycles, which can be done by creating a `pyramid.core/db`.
+"Pyramid dbs" are maps that have a particular structure:
+
+```clojure
+;; for any entity identified by `[key id]`, it follows the shape:
+{key {id {,,,}}
+```
+
 Adding data to a db will [normalize](https://en.wikipedia.org/wiki/Database_normalization)
 the data into a flat structure allowing for easy updating of entities as new
 data is obtained and allow relationships that are hard to represent in trees.
@@ -137,4 +144,4 @@ See [docs/GUIDE.md](docs/GUIDE.md)
 
 ## Copyright
 
-Copyright © 2022 Will Acton. Distributed under the EPL 2.0.
+Copyright © 2023 Will Acton. Distributed under the EPL 2.0.
