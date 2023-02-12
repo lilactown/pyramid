@@ -122,6 +122,9 @@ the domain entity it is about. E.g. `{:person/id 1234 :person/name "Bill"
 default, any map which contains a key which `(= "id" (name key))` is true, is an
 entity map and can be normalized using `pyramid.core/db`.
 
+**Ident function**: a function that takes a map and returns a tuple `[:key val]`
+that uniquely identifies the entity the map describes.
+
 **Lookup ref**: a 2-element Clojure vector that has a keyword and a value which
 together act as a pointer to a domain entity. E.g. `[:person/id 1234]`.
 `pyramid.core/pull` will attempt to look them up in the db value if they appear
