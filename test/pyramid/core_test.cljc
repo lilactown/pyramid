@@ -597,7 +597,12 @@
                            :person/name "Alice"
                            :person/age 25
                            :person/favorites #:favorite{:ice-cream "vanilla"}}}}
-           (p/delete db [:person/id 1]))))
+           (p/delete db [:person/id 1])))
+  (t/is (= (-> {}
+               (p/delete [:person/id 1])
+               (p/add {:person/id 1 :person/name "Alice"}))
+           {:person/id {1 {:person/id 1 :person/name "Alice"}}})))
+
 
 
 (t/deftest data->query
