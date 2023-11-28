@@ -73,7 +73,7 @@
 
 (defn- update-ref
   ([m [k ek] f x]
-   (let [em (get m k {})
+   (let [em (or (get m k) {})
          v (get em ek)]
      #?(:bb (assoc m k
                    (assoc em ek
