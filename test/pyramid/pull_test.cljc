@@ -161,3 +161,15 @@
                (:foo)
                (.-result)
                (:bar)))))))
+
+
+(deftest issue-36
+  (let [db '{:zones ([:zone/id "b3d91e54-75e0-424b-b4c6-363cbd0ff06a"]
+                     [:zone/id "4fba72c3-97ec-4458-9e78-b75bd6b323d0"]
+                     [:zone/id "5a3f1bf5-aee1-40f1-9ea3-313ea3123c90"])}
+        q [{:zones [:zone/id]}]]
+    (is (= '{:zones
+             (#:zone{:id "b3d91e54-75e0-424b-b4c6-363cbd0ff06a"}
+              #:zone{:id "4fba72c3-97ec-4458-9e78-b75bd6b323d0"}
+              #:zone{:id "5a3f1bf5-aee1-40f1-9ea3-313ea3123c90"})}
+           (:data (trampoline p/pull-report db q))))))
