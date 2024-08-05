@@ -7,6 +7,10 @@
 * You can now mix entities and non-entities in collections when using `pull` and
   `pull-report`.
 
+### Fixed
+
+* Unions on lists now return results in correct order
+
 ## 3.4.0
 
 ### Added
