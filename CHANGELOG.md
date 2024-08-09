@@ -1,6 +1,6 @@
 # CHANGELOG.md
 
-## UNRELEASED
+## 4.0.0
 
 ### Breaking
 
