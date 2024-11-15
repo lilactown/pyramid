@@ -1,5 +1,13 @@
 # CHANGELOG.md
 
+## 4.1.0
+
+### Fixed
+
+- `:visitor` on a join will take the full value if the value is a map, or be
+  called for each child if it's a collection. This matches the behavior that the
+  README says.
+
 ## 4.0.0
 
 ### Breaking
@@ -85,7 +93,7 @@ also supports arbitrary levels of nesting (up to computer memory limits).
 ## 3.0.0 to 3.1.2
 
 Renamed to pyramid.
-Experimental datalog-like query engine. 
+Experimental datalog-like query engine.
 Internal refactor to use zippers.
 
 ## 2.0.0
@@ -135,7 +143,7 @@ functions for identifying entities.
 
 
 ;; autonormal.ident/by-keys is a helper that handles the specific case of
-;; composing keys 
+;; composing keys
 (a/db [] (ident/by-keys :person/id :food/name))
 ```
 
