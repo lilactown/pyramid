@@ -66,7 +66,7 @@ used to transform the data in a depth-first, post-order traversal (just like
    :items {}})
 
 (defn fullname
-  [{:keys [given-name surname] :as person}]
+  [_db {:keys [given-name surname] :as person}]
   (str given-name " " surname))
 
 (def query [{:people ^{:visitor fullname} [:given-name :surname]}])
@@ -118,7 +118,7 @@ It does not provide arbitrary logic like SQL or Datalog.
 
 **Entity map**: a Clojure map which contains information that uniquely identifies
 the domain entity it is about. E.g. `{:person/id 1234 :person/name "Bill"
-:person/age 67}` could be uniquely identified by it's `:person/id` key. By 
+:person/age 67}` could be uniquely identified by it's `:person/id` key. By
 default, any map which contains a key which `(= "id" (name key))` is true, is an
 entity map and can be normalized using `pyramid.core/db`.
 

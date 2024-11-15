@@ -77,9 +77,8 @@
     (let [query [{:foo (visit [:bar :baz])}]
           data {:foo [{:bar 123 :baz 456}
                       {:bar 789 :baz "qux"}]}]
-      (is (= {:foo (->Visited
-                    [:bar :baz]
-                    [{:bar 123 :baz 456} {:bar 789 :baz "qux"}])}
+      (is (= {:foo [(->Visited [:bar :baz] {:bar 123 :baz 456})
+                    (->Visited [:bar :baz] {:bar 789 :baz "qux"})]}
              (:data (trampoline p/pull-report data query)))
           "multiple items")))
   (testing "nested join"
@@ -93,14 +92,16 @@
     (let [query [{:foo (visit [{:bar (visit [:baz])}])}]
           data {:foo [{:bar {:baz 123}}
                       {:bar {:baz 456}}]}]
-      (is (= {:foo (->Visited
-                    [{:bar (visit [:baz])}]
-                    [{:bar (->Visited
-                            [:baz]
-                            {:baz 123})}
+      (is (= {:foo [(->Visited
+                     [{:bar [:baz]}]
                      {:bar (->Visited
                             [:baz]
-                            {:baz 456})}])}
+                            {:baz 123})})
+                    (->Visited
+                     [{:bar [:baz]}]
+                     {:bar (->Visited
+                            [:baz]
+                            {:baz 456})})]}
              (:data (trampoline p/pull-report data query))))))
   (testing "union"
     (let [query [{:foo (visit

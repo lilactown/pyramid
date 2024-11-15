@@ -220,21 +220,23 @@
                                     [(:children parent)
                                      parent]))
           k' (comp k #(vector (:key node) %))
-          k' (if-let [visitor (-> node :query meta :visitor)]
-              #(k' (visitor db %))
-              k')
+          node-visitor (if-let [visitor (some-> node :query meta :visitor)]
+                         (fn [x]
+                           (visitor db x))
+                         identity)
           union-child? (and (= 1 (count (:children node)))
                             (= :union (:type (first (:children node)))))]
       (cond
         (map? data)
         ;; handle union, which might have a visitor
         (if (and union-child? (map? data))
-          #(visit k' db (first (:children node))
+          #(visit (comp k' node-visitor)
+                  db (first (:children node))
                   {:data data
                    :parent new-parent
                    :entities entities})
           (cc/into
-           k'
+           (comp k' node-visitor)
            (with-meta {} (:meta node))
            (comp
             (cc/map (fn [k x]
@@ -257,14 +259,16 @@
          ;; f
          (fn [k datum]
            (if union-child?
-             #(visit (comp k (fn [x]
-                               (with-meta x (:meta node))))
+             #(visit (comp k
+                           node-visitor
+                           (fn [x]
+                             (with-meta x (:meta node))))
                      db (first children)
                      {:data datum
                       :parent new-parent
                       :entities entities})
              (cc/into
-              k
+              (comp k node-visitor)
               (with-meta (empty datum) (:meta node))
               (comp
                (cc/map (fn [k x]
@@ -282,14 +286,16 @@
                        (cc/map
                         (fn [k datum]
                           (if union-child?
-                            #(visit (comp k (fn [x]
-                                              (with-meta x (:meta node))))
+                            #(visit (comp k
+                                          node-visitor
+                                          (fn [x]
+                                            (with-meta x (:meta node))))
                                     db (first children)
                                     {:data datum
                                      :parent new-parent
                                      :entities entities})
                             (cc/into
-                             k
+                             (comp k node-visitor)
                              (with-meta (empty datum) (:meta node))
                              (comp
                               (cc/map (fn [k x]
