@@ -52,7 +52,7 @@ impact, but allows working with arbitrarily nested data.
 - Pull queries now use protocol `IPullable` to resolve entities, allowing
   pyramid to query arbitrary data stores using EQL.
 - Datalog queries now use protocol `IQueryable` to get all entities from an
-  object, allowing pyramid to query arbitraty data stores in memory.
+  object, allowing pyramid to query arbitrary data stores in memory.
 - `pull-report` now returns an `:indices` key with a set of top-level indices
   that are used in the query.
 - `add-report` now returns an `:indices` key with a set of top-level indices
